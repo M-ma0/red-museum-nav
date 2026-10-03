@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#b8232f">
+<meta name="description" content="红色博物馆云上观展导航：汇聚 14 家革命类博物馆、纪念馆的 46 个线上展馆入口（720°全景 / 3D数字馆 / 官网虚拟展厅 / 语音导览 / 公众号小程序），一页直达，点击即看。">
+<meta name="keywords" content="红色博物馆,线上展馆,720全景,数字博物馆,云上观展,党史学习,虚拟展厅">
+<title>红色博物馆 · 云上观展导航</title>
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23b8232f'/%3E%3Cpath d='M16 6l2.9 5.9 6.5.95-4.7 4.6 1.1 6.5L16 20.9 10.2 24l1.1-6.5-4.7-4.6 6.5-.95z' fill='%23f6d67a'/%3E%3C/svg%3E">
+</head>
+<body>
+<a class="skip" href="#main">跳到主要内容</a>
+
+<!-- ============================ 顶栏 ============================ -->
+<header class="topbar">
+  <div class="topbar-in">
+    <a class="brand" href="#top">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M12 2l2.6 5.3 5.9.86-4.25 4.15 1 5.86L12 15.4l-5.25 2.77 1-5.86L3.5 8.16l5.9-.86z"/></svg>
+      </span>
+      <span class="brand-txt">
+        <b>红色博物馆 · 云上观展</b>
+        <span>ONLINE MEMORIAL HALLS NAVIGATOR</span>
+      </span>
+    </a>
+    <nav class="topnav" id="topnav" aria-label="页面导航"></nav>
+    <button class="fav-btn" id="favBtn" type="button" aria-label="查看我的收藏">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <path d="M12 3.5l2.6 5.3 5.9.86-4.25 4.15 1 5.86L12 16.9l-5.25 2.77 1-5.86L3.5 9.66l5.9-.86z"/>
+      </svg>
+      我的收藏 <span class="n" id="favCount">0</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================ 首屏 ============================ -->
+<div class="hero" id="top">
+  <div class="wrap hero-in">
+    <span class="eyebrow">红 色 云 展 览</span>
+    <h1>一页直达 <em id="heroTitle">红色博物馆线上入口</em></h1>
+    <p class="lead">
+      汇集全国 <b id="heroVenues">15</b> 家革命类博物馆、纪念馆的 720° 全景展馆、3D 数字馆、官网虚拟展厅、语音导览与公众号 / 小程序入口。
+      每张卡片都配真实页面预览图，点一下即可进入展厅。
+    </p>
+    <div class="stats" id="stats"></div>
+    <div class="searchrow">
+      <label class="searchbox">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0A4.5 4.5 0 1114 9.5 4.5 4.5 0 019.5 14z"/></svg>
+        <input type="search" id="q" placeholder="搜索展馆、展览名称或入口类型，如「遵义」「720」「语音」" autocomplete="off" aria-label="搜索展馆或展览">
+        <kbd>/</kbd>
+        <button class="btn-clear" id="qClear" type="button" aria-label="清空搜索">×</button>
+      </label>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ 筛选栏 ============================ -->
+<div class="filterbar">
+  <div class="wrap filterbar-in">
+    <div class="fctl">
+      <button class="fctl-toggle" id="btnFilterToggle" type="button" aria-expanded="false" aria-controls="filterRows">
+        <svg class="ico-sliders" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v2H3zm3 6h12v2H6zm3 6h6v2H9z"/></svg>
+        <span>筛选</span>
+        <svg class="ico-caret" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.4 8.6L12 13.2l4.6-4.6L18 10l-6 6-6-6z"/></svg>
+      </button>
+      <div class="fsummary" id="filterSummary"></div>
+      <button class="btn-reset fctl-reset" id="btnFilterReset" type="button" hidden>清除筛选</button>
+    </div>
+    <div class="filterbar-rows" id="filterRows">
+      <div class="frow" id="rowType" role="group" aria-label="按入口类型筛选"><span class="flabel">类型</span></div>
+      <div class="frow" id="rowVenue" role="group" aria-label="按场馆筛选"><span class="flabel">场馆</span></div>
+      <div class="frow" id="rowRegion" role="group" aria-label="按属地筛选"><span class="flabel">属地</span></div>
+      <div class="frow" id="rowState" role="group" aria-label="按核验状态筛选"><span class="flabel">状态</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ 主体 ============================ -->
+<main class="wrap" id="main">
+
+  <div class="resultbar" id="resultbar">
+    <span id="resultText"></span>
+    <span class="spacer"></span>
+    <button class="btn-reset" id="btnReset" type="button" hidden>清除全部筛选</button>
+  </div>
+
+  <!-- 我的收藏 -->
+  <section class="block" id="favBlock" hidden>
+    <div class="block-head">
+      <h2>我的收藏</h2>
+      <span class="hint">点击卡片右上角 ☆ 可收藏或取消</span>
+      <span class="spacer"></span>
+      <button class="btn-reset" id="btnClearFav" type="button">清空收藏</button>
+    </div>
+    <div class="grid compact" id="favGrid"></div>
+  </section>
+
+  <!-- 云上观展合辑（全部入口都在时序视图里，这里给一个"按观展方式"的轻量入口） -->
+  <section class="block" id="cloudBlock">
+    <div class="block-head">
+      <h2>云上观展合辑</h2>
+      <span class="hint">按观展方式挑选：全景漫游 · 语音讲解 · 数字专题</span>
+    </div>
+    <div class="rail" id="cloudRail"></div>
+  </section>
+
+  <!-- 精选推荐（筛选时隐藏，让筛选结果优先） -->
+  <section class="block" id="featuredBlock">
+    <div class="block-head">
+      <h2>⭐ 精选推荐</h2>
+      <span class="hint">官方确认 · 移动端体验最佳，优先从这里开始</span>
+    </div>
+    <div class="rail" id="featuredRail"></div>
+  </section>
+
+  <!-- 按党史时序浏览 -->
+  <section class="block" id="timelineBlock">
+    <div class="block-head">
+      <h2>按照党史时序云游</h2>
+      <span class="hint">从党的诞生到强军征程，按历史脉络分组</span>
+      <span class="spacer"></span>
+      <button class="btn-reset" id="btnToggleEra" type="button" aria-pressed="false">切换到「按场馆浏览」</button>
+    </div>
+    <div id="eraContainer"></div>
+  </section>
+
+  <!-- 按场馆浏览 -->
+  <section class="block" id="venueBlock" hidden>
+    <div class="block-head">
+      <h2>按照场馆云游</h2>
+      <span class="hint">同一家馆的多个入口集中在一起</span>
+    </div>
+    <div id="venueContainer"></div>
+  </section>
+
+  <!-- 引导型入口 -->
+  <section class="block" id="guideBlock">
+    <div class="block-head">
+      <h2>公众号 · 小程序 · 线下体验</h2>
+      <span class="hint">这些入口无法直接跳转，按卡片中的路径操作即可</span>
+    </div>
+    <div class="guide-list" id="guideList"></div>
+  </section>
+
+  <!-- 空状态 -->
+  <div class="empty" id="empty" hidden>
+    <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0A4.5 4.5 0 1114 9.5 4.5 4.5 0 019.5 14z"/></svg>
+    <h3>没有找到匹配的展馆</h3>
+    <p>试试更短的关键词，或清除筛选条件重新查找。</p>
+    <button class="btn-reset" id="btnReset2" type="button">清除全部筛选</button>
+  </div>
+</main>
+
+<!-- ============================ 页脚 ============================ -->
+<footer>
+  <div class="wrap">
+    <div class="fcols">
+      <div>
+        <h4>数据来源</h4>
+        <p id="footSource"></p>
+        <p id="footUpdated"></p>
+      </div>
+      <div>
+        <h4>核验状态说明</h4>
+        <ul>
+          <li><span class="dot ok"></span><b>官方确认</b> —— 链接来自馆方官网或官方公众号公布</li>
+          <li><span class="dot warn"></span><b>第三方收录</b> —— 来自第三方平台收录，建议打开前复核</li>
+          <li><span class="dot dead"></span><b>已隐藏的入口</b> —— 巡检返回错误页或网络不可达的入口暂不展示，
+            清单见 <code>data/excluded.json</code>，站点恢复后可随时还原</li>
+        </ul>
+      </div>
+      <div>
+        <h4>访问提示</h4>
+        <ul>
+          <li><span class="dot http"></span><b>http 链接</b> —— 微信内可能被拦截，卡片会提供「复制链接」按钮</li>
+          <li><span class="dot guide"></span><b>引导型入口</b> —— 公众号 / 小程序 / 线下体验需按路径操作</li>
+          <li>全景类展馆流量较大，建议在 Wi-Fi 环境下打开</li>
+        </ul>
+      </div>
+    </div>
+    <p class="foot-note" id="footNote"></p>
+  </div>
+</footer>
+
+<button class="totop" id="toTop" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24"><path d="M12 5.5l7 7-1.4 1.4L13 9.3V19h-2V9.3l-4.6 4.6L5 12.5z"/></svg>
+</button>
+
+<!-- 浮层 -->
+<div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal" id="modal"></div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="data/entries.js"></script>
+<script src="assets/qr.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "red-museum-nav",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "红色博物馆 · 云上观展导航页 —— 静态站点与配套构建、截图采集、自检工具",
+  "scripts": {
+    "serve": "node tools/serve.mjs 8765",
+    "qa": "node tools/qa-site.mjs",
+    "data": "python tools/build_data.py",
+    "shots": "node tools/shot-worker.mjs _build/shots.json \"_build/raw,images/thumbs\" 0 1",
+    "build": "python tools/build_site.py"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^25.12.0"
+  }
+}

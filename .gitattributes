@@ -1,0 +1,12 @@
+# 统一换行符，避免 Windows 检出时满屏 CRLF 警告
+* text=auto eol=lf
+
+# Windows 批处理必须保留 CRLF，否则可能无法双击运行
+*.bat text eol=crlf
+
+# 二进制资源不做换行转换
+*.jpg binary
+*.jpeg binary
+*.png binary
+*.xlsx binary
+*.ico binary

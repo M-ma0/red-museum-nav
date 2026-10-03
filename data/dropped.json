@@ -1,0 +1,53 @@
+{
+ "note": "以下入口因确认无法访问，已从导航页数据中删除；如需恢复，删除 tools/build_data.py 中 DROPPED 的对应项并重跑该脚本。",
+ "entries": [
+  {
+   "seq": 1,
+   "venue": "延安革命纪念馆",
+   "name": "官网首页（含“数字博物馆”栏目）",
+   "url": "http://www.yagmjng.com/",
+   "reason": "官网在本机网络下连接超时，无法打开",
+   "kind": "网络不可达"
+  },
+  {
+   "seq": 19,
+   "venue": "中共一大纪念馆",
+   "name": "网上纪念馆（pano站）",
+   "url": "http://pano.zgyd1921.com/",
+   "reason": "返回 403，服务器拒绝访问",
+   "kind": "403"
+  },
+  {
+   "seq": 30,
+   "venue": "韶山毛泽东同志纪念馆",
+   "name": "《中国出了个毛泽东》网上展厅（旧版）",
+   "url": "http://www.txssw.com/jngclzl/XuNiZhanTin/museum/index.html",
+   "reason": "返回 404，页面已不存在",
+   "kind": "404"
+  },
+  {
+   "seq": 36,
+   "venue": "南昌八一起义纪念馆",
+   "name": "VR全景（第三方收录）",
+   "url": "https://vr.yunwucm.com/v/jx_81china",
+   "reason": "返回 404，页面已不存在",
+   "kind": "404"
+  },
+  {
+   "seq": 39,
+   "venue": "中国人民革命军事博物馆",
+   "name": "“在党的旗帜下前进”建党百年主题展数字展馆",
+   "url": "http://bnz.jb.mil.cn/",
+   "reason": "域名无法连接，站点已下线或限制访问",
+   "kind": "网络不可达"
+  },
+  {
+   "seq": 40,
+   "venue": "中国人民革命军事博物馆",
+   "name": "“领航强军向复兴”新时代成就展数字展馆",
+   "url": "https://xsd.jb.mil.cn/",
+   "reason": "域名无法连接，站点已下线或限制访问",
+   "kind": "网络不可达"
+  }
+ ]
+}

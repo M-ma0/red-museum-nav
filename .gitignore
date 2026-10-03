@@ -1,0 +1,18 @@
+# ---- 依赖（截图采集工具使用，克隆后用 pnpm install 还原）----
+node_modules/
+
+# ---- 构建中间产物（可由 tools/ 下的脚本重新生成）----
+# 含原始截图、QA 报告、临时清单等，属本地产物，不纳入版本管理
+_build/
+
+# ---- 操作系统 / 编辑器 ----
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+.idea/
+.vscode/
+
+# ---- 临时文件 ----
+*.tmp
+*.log
