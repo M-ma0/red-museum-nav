@@ -1,0 +1,47 @@
+name: Deploy static site to GitHub Pages
+
+# 站点是纯静态的，只需要把 index.html / assets / data / images 原样发布即可。
+# 构建工具（tools/、node_modules/、_build/）不参与部署。
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同一时间只保留一次部署；排队中的旧任务直接取消
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload site artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # 只发布站点运行所需的文件，路径保持原样（页面内引用均为相对路径）
+          path: |
+            index.html
+            assets
+            data
+            images
+            README.md
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
