@@ -31,16 +31,21 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
+      # upload-pages-artifact 只接受单个 path，所以先按需打包成 tar，
+      # 这样既能精确控制发布内容，也避免把 tools/ 一并发布。
+      - name: Archive site files
+        run: |
+          tar \
+            --dereference --hard-dereference \
+            -cvf "$RUNNER_TEMP/artifact.tar" \
+            index.html assets data images README.md
+
       - name: Upload site artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          # 只发布站点运行所需的文件，路径保持原样（页面内引用均为相对路径）
-          path: |
-            index.html
-            assets
-            data
-            images
-            README.md
+          name: github-pages
+          path: ${{ runner.temp }}/artifact.tar
+          retention-days: 1
 
       - name: Deploy to GitHub Pages
         id: deployment
