@@ -40,17 +40,43 @@ def scan_thumbs():
             continue
         eid = os.path.splitext(name)[0]
         card = os.path.join(THUMBS, name)
-        hi = os.path.join(THUMBS, eid + "@2x.jpg")
-        if os.path.exists(hi):
-            out[eid] = {"card": os.path.getsize(card), "hi": os.path.getsize(hi), "src": 0}
+        card2 = os.path.join(THUMBS, eid + "@2x.jpg")
+        if os.path.exists(card2):
+            out[eid] = {"card": os.path.getsize(card),
+                        "card2": os.path.getsize(card2),
+                        "src": 0}
     return out
 
 
 existing = scan_thumbs()
 
 # ---------------------------------------------------------------- 1. 图片后处理
-def optimize_images():
-    """原始截图 -> 卡片图 / 2 倍图 / 微缩占位。已生成且比原图新的会跳过。"""
+# 弱网优化：同一张原图产出两档尺寸 + 一张内联微缩占位图
+#   card  560×350  1x，桌面单卡渲染宽度约 288px，1.9x 像素密度（q78，约 30 KB）
+#   card2 840×525  2x，供高密度屏与放大场景（q74，约 60 KB）
+#   tiny  20×12    模糊占位，压成 base64 内联进 HTML，图片到达前先显示
+CARD_1X = (560, 350)
+CARD_2X = (840, 525)
+TINY = (20, 12)
+Q_1X, Q_2X, Q_TINY = 78, 74, 42
+
+
+def _fit_16_10(im):
+    """按 16:10 裁切，取景偏上，避开页面底部无关内容"""
+    w, h = im.size
+    target = 16 / 10
+    if w / h > target:
+        nw = int(h * target)
+        return im.crop(((w - nw) // 2, 0, (w - nw) // 2 + nw, h))
+    if w / h < target:
+        nh = int(w / target)
+        top = int((h - nh) * 0.28)
+        return im.crop((0, top, w, top + nh))
+    return im
+
+
+def optimize_images(force=False):
+    """原始截图 -> 1x / 2x / 微缩占位。已生成且比原图新的会跳过（force=True 时全部重做）。"""
     try:
         from PIL import Image
     except ImportError:
@@ -62,39 +88,50 @@ def optimize_images():
         if not name.lower().endswith(".jpg"):
             continue
         eid = os.path.splitext(name)[0]
-        # 成品图已在 thumbs 目录且不落后于原图 -> 跳过
-        if eid in existing:
+        card_path = os.path.join(THUMBS, "%s.jpg" % eid)
+        card2_path = os.path.join(THUMBS, "%s@2x.jpg" % eid)
+        tiny_path = os.path.join(THUMBS, "%s.tiny.jpg" % eid)
+        if not force and eid in existing and os.path.exists(tiny_path):
             stats[eid] = existing[eid]
             continue
         src_path = os.path.join(RAW, name)
         try:
-            im = Image.open(src_path).convert("RGB")
+            im = _fit_16_10(Image.open(src_path).convert("RGB"))
         except Exception as exc:
             print("  !! 无法打开 %s: %s" % (name, exc))
             continue
-        w, h = im.size
-        target = 16 / 10
-        if w / h > target:
-            nw = int(h * target)
-            im = im.crop(((w - nw) // 2, 0, (w - nw) // 2 + nw, h))
-        elif w / h < target:
-            nh = int(w / target)
-            top = int((h - nh) * 0.28)      # 偏上取景，避开底部无关内容
-            im = im.crop((0, top, w, top + nh))
-        card = im.resize((800, 500), Image.LANCZOS)
-        card_path = os.path.join(THUMBS, "%s.jpg" % eid)
-        card.save(card_path, "JPEG", quality=82, optimize=True, progressive=True)
-        hi = im.resize((1600, 1000), Image.LANCZOS)
-        hi_path = os.path.join(THUMBS, "%s@2x.jpg" % eid)
-        hi.save(hi_path, "JPEG", quality=74, optimize=True, progressive=True)
-        tiny = im.resize((32, 20), Image.LANCZOS)
-        tiny.save(os.path.join(THUMBS, "%s.tiny.jpg" % eid), "JPEG", quality=45, optimize=True)
+        im.resize(CARD_1X, Image.LANCZOS).save(
+            card_path, "JPEG", quality=Q_1X, optimize=True, progressive=True)
+        im.resize(CARD_2X, Image.LANCZOS).save(
+            card2_path, "JPEG", quality=Q_2X, optimize=True, progressive=True)
+        im.resize(TINY, Image.LANCZOS).save(
+            tiny_path, "JPEG", quality=Q_TINY, optimize=True)
         stats[eid] = {
             "card": os.path.getsize(card_path),
-            "hi": os.path.getsize(hi_path),
+            "card2": os.path.getsize(card2_path),
+            "tiny": os.path.getsize(tiny_path),
             "src": os.path.getsize(src_path),
         }
     return stats
+
+
+def build_placeholders_js(stats):
+    """把微缩占位图内联成 base64，生成 data/placeholders.js（省掉 31 次额外请求）"""
+    import base64
+    items = []
+    for eid in sorted(stats):
+        p = os.path.join(THUMBS, "%s.tiny.jpg" % eid)
+        if not os.path.exists(p):
+            continue
+        with open(p, "rb") as f:
+            b64 = base64.b64encode(f.read()).decode("ascii")
+        items.append('"%s":"data:image/jpeg;base64,%s"' % (eid, b64))
+    js = ("/* 由 tools/build_site.py 自动生成：图片模糊占位（内联 base64，避免额外请求） */\n"
+          "window.__NAV_PLACEHOLDERS__={" + ",".join(items) + "};\n")
+    out_path = os.path.join(ROOT, "data", "placeholders.js")
+    with io.open(out_path, "w", encoding="utf-8") as f:
+        f.write(js)
+    return out_path, len(items), len(js.encode("utf-8"))
 
 
 # ---------------------------------------------------------------- 2. 链接巡检
@@ -139,6 +176,9 @@ def check_links(entries):
 
 # ---------------------------------------------------------------- 主流程
 def main():
+    argv = sys.argv[1:]
+    force = "--force" in argv            # 换压缩参数后需要重做全部图片
+    skip_links = "--no-links" in argv    # 只重压图片时跳过联网巡检
     today = __import__("datetime").date.today().isoformat()
     with io.open(DATA, encoding="utf-8") as f:
         data = json.load(f)
@@ -147,17 +187,24 @@ def main():
     print("=== 1. 图片后处理 ===")
     global existing
     existing = scan_thumbs()
-    img_stats = optimize_images()
+    img_stats = optimize_images(force=force)
     # 清理指向不存在文件的图片路径（曾采集失败但字段仍在）
     for e in entries:
         if e.get("image") and e["id"] not in img_stats:
             e["image"] = ""
     total_card = sum(v["card"] for v in img_stats.values())
-    total_hi = sum(v["hi"] for v in img_stats.values())
-    print("已优化 %d 张；卡片图合计 %.1f KB，2 倍图合计 %.1f KB"
-          % (len(img_stats), total_card / 1024, total_hi / 1024))
+    total_card2 = sum(v.get("card2", 0) for v in img_stats.values())
+    total_tiny = sum(v.get("tiny", 0) for v in img_stats.values())
+    n = max(1, len(img_stats))
+    print("已优化 %d 张：1x 合计 %.0f KB（均值 %.1f KB）· 2x 合计 %.0f KB · 微缩合计 %.0f KB"
+          % (len(img_stats), total_card / 1024, total_card / 1024 / n,
+             total_card2 / 1024, total_tiny / 1024))
+    # 生成内联模糊占位
+    ph_path, ph_n, ph_bytes = build_placeholders_js(img_stats)
+    print("内联占位图 data/placeholders.js：%d 张，%.1f KB（省掉 %d 次额外请求）"
+          % (ph_n, ph_bytes / 1024, ph_n))
     # 原始截图存在但成品图缺失，说明压缩环节出过问题
-    raw_stems = {os.path.splitext(n)[0] for n in os.listdir(RAW) if n.lower().endswith(".jpg")} \
+    raw_stems = {os.path.splitext(x)[0] for x in os.listdir(RAW) if x.lower().endswith(".jpg")} \
         if os.path.isdir(RAW) else set()
     failed_opt = sorted(raw_stems - set(img_stats))
     if failed_opt:
@@ -166,7 +213,10 @@ def main():
     print("无预览图（将用 CSS 占位图）:", ", ".join(missing) if missing else "无")
 
     print("\n=== 2. 链接有效性巡检 ===")
-    checks = check_links(entries)
+    checks = check_links(entries) if not skip_links else json.load(
+        io.open(os.path.join(ROOT, "_build", "qa-report.json"), encoding="utf-8")).get("linkChecks", {})
+    if skip_links:
+        print("（--no-links：沿用上次巡检结果）")
     for e in entries:
         if not e["linkable"]:
             e["dead"] = False
@@ -230,6 +280,7 @@ def main():
         "missingShots": missing,
         "linkChecks": checks,
         "dead": dead,
+        "placeholders": {"count": ph_n, "bytes": ph_bytes},
         "totals": {
             "entries": len(entries),
             "linkable": sum(1 for e in live if e["linkable"]),
@@ -237,7 +288,8 @@ def main():
             "verified": sum(1 for e in live if e["verified"]),
             "shots": len(img_stats),
             "cardBytes": total_card,
-            "hiBytes": total_hi,
+            "card2Bytes": total_card2,
+            "tinyBytes": total_tiny,
         },
     }
     with io.open(os.path.join(ROOT, "_build", "qa-report.json"), "w", encoding="utf-8") as f:

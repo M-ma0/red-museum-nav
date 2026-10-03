@@ -86,13 +86,36 @@ check(imgOk + noShot === entries.length, `预览图 + 占位卡 = 全部条目�
 check(entries.filter((e) => e.hasShot === false).length === noShot,
   `未采到截图的条目均已标记 hasShot=false（${noShot} 条）`);
 
-// 2 倍图与缩略图
-let hiCount = 0;
+// 弱网优化产物：1x 560×350 / 2x 840×525 / 微缩 20×12，且必须有内联占位
+let img2xCount = 0, tinyCount = 0, badSize = [];
+const placeholdersSrc = fs.readFileSync(path.join(ROOT, "data", "placeholders.js"), "utf8");
 for (const e of entries) {
-  const hi = e.image.replace(/\.jpg$/, "@2x.jpg");
-  if (e.image && fs.existsSync(path.join(ROOT, hi))) hiCount++;
+  if (!e.image) continue;
+  const hi = path.join(ROOT, e.image.replace(/\.jpg$/, "@2x.jpg"));
+  const tiny = path.join(ROOT, e.image.replace(/\.jpg$/, ".tiny.jpg"));
+  if (fs.existsSync(hi)) img2xCount++;
+  if (fs.existsSync(tiny)) tinyCount++;
+  // 校验 1x 图片实际像素尺寸
+  try {
+    const buf = fs.readFileSync(path.join(ROOT, e.image));
+    let i = 2, dim = null;
+    while (i < buf.length) {
+      if (buf[i] !== 0xff) { i++; continue; }
+      const m = buf[i + 1];
+      if (m >= 0xc0 && m <= 0xcf && m !== 0xc4 && m !== 0xc8 && m !== 0xcc) {
+        dim = { h: buf.readUInt16BE(i + 5), w: buf.readUInt16BE(i + 7) };
+        break;
+      }
+      i += 2 + buf.readUInt16BE(i + 2);
+    }
+    if (!dim || dim.w !== 560 || dim.h !== 350) badSize.push(`${e.id}:${dim ? dim.w + "x" + dim.h : "?"}`);
+  } catch { badSize.push(`${e.id}:读取失败`); }
 }
-check(hiCount === imgOk, `2 倍图数量与主图一致（${hiCount}/${imgOk}）`);
+check(badSize.length === 0, `1x 卡片图尺寸统一为 560×350（异常 ${badSize.length}${badSize.length ? "：" + badSize.join(",") : ""}）`);
+check(img2xCount === imgOk, `2 倍图齐备（${img2xCount}/${imgOk}）`);
+check(tinyCount === imgOk, `微缩占位图齐备（${tinyCount}/${imgOk}）`);
+check((placeholdersSrc.match(/data:image\/jpeg;base64,/g) || []).length === imgOk,
+  `占位图内联进 placeholders.js（${imgOk} 张）`);
 
 /* ---------- 3. 内联数据与 JSON 一致 ---------- */
 const jsSrc = fs.readFileSync(path.join(ROOT, "data", "entries.js"), "utf8");
@@ -129,7 +152,7 @@ if (CHROME) {
     // 按场馆视图（默认隐藏）也渲染一份，用于校验
     const venueIds = new Set();
     document.querySelectorAll("#venueContainer .card").forEach((c) => venueIds.add(c.dataset.id));
-    // 页面上出现过的全部条目 id（含精选 / 收藏 / 最近）
+    // 页面上出现过的全部条目 id（含精选与两个视图）
     const renderedIds = [];
     document.querySelectorAll(".card").forEach((c) => renderedIds.push(c.dataset.id));
     return {
@@ -153,11 +176,16 @@ if (CHROME) {
       timelineCards: ids.size,
       venueCards: venueIds.size,
       brokenImages: broken,
-      favBtnVisible: !!document.querySelector("#favBtn"),
       searchVisible: !!document.querySelector("#q"),
       statsText: (document.querySelector("#stats")?.innerText || "").replace(/\s+/g, " "),
       statCount: document.querySelectorAll("#stats .stat").length,
       footSource: (document.querySelector("#footSource")?.innerText || "").replace(/\s+/g, " "),
+      // 弱网优化：模糊占位是否内联生效
+      inlinePlaceholders: Array.from(document.querySelectorAll(".thumb"))
+        .filter((t) => (t.style.backgroundImage || "").includes("data:image")).length,
+      srcsetCount: document.querySelectorAll('.thumb img[srcset*="840w"]').length,
+      // 收藏功能应已完全移除
+      favLeftovers: document.querySelectorAll("#favBtn, #favBlock, #favGrid, .btn-fav").length,
       footNote: (document.querySelector("#footNote")?.innerText || "").slice(0, 120),
       totalImgs: imgs.length,
     };
@@ -196,16 +224,6 @@ if (CHROME) {
       out.typeFilterNarrowed = out.typeFilterCards > 0 && out.typeFilterCards < before;
       findChip()?.click();
       await sleep(350);
-    }
-
-    // 收藏
-    const fav = document.querySelector(".btn-fav");
-    out.favFound = !!fav;
-    if (fav) {
-      fav.click();
-      await sleep(300);
-      out.favCount = document.querySelector("#favCount").innerText;
-      out.favBlockHidden = document.querySelector("#favBlock").hidden;
     }
 
     // 二维码弹窗（挑一个 http 链接卡片）
@@ -405,9 +423,15 @@ if (CHROME) {
   check(render.thumbs === imgOk * 2 + render.featuredCards,
     `有预览图的卡片渲染数量正确（${render.thumbs} = ${imgOk} × 2 视图 + ${render.featuredCards} 精选）`);
   check(render.guides === entries.filter((e) => !e.linkable).length, `引导卡 ${render.guides} 张 = 不可外链条目数 ${entries.filter((e) => !e.linkable).length}`);
-  check(render.navLinks > 0 && render.searchVisible && render.favBtnVisible, "顶栏导航 / 搜索 / 收藏入口均渲染");
+  check(render.navLinks > 0 && render.searchVisible, "顶栏导航与搜索框均渲染");
   check(!render.hasRecentBlock && !render.hasRecentRail && !render.hasClearRecent,
     "最近浏览功能与相关元素已完全移除");
+  check(render.favLeftovers === 0, `收藏功能与相关元素已完全移除（残留 ${render.favLeftovers}）`);
+  /* 弱网优化 */
+  check(render.inlinePlaceholders === imgOk * 2 + render.featuredCards,
+    `每张有图卡片都带内联模糊占位（${render.inlinePlaceholders}）`);
+  check(render.srcsetCount === imgOk * 2 + render.featuredCards,
+    `每张有图卡片都提供 560w/840w 双档 srcset（${render.srcsetCount}）`);
   // 已删除的入口绝不允许出现在页面上
   const leaked = dropped.map((d) => "e" + String(d.seq).padStart(2, "0"))
     .filter((id) => render.renderedIds.includes(id));
@@ -429,7 +453,6 @@ if (CHROME) {
   check(interaction.allCards === entries.length, "清空搜索后恢复全部卡片");
   check(interaction.chipFound && interaction.typeFilterPressed === "true" && interaction.typeFilterNarrowed,
     `类型筛选生效（${interaction.typeFilterCards} 张，选中态 ${interaction.typeFilterPressed}）`);
-  check(interaction.favCount === "1" && !interaction.favBlockHidden, "收藏写入并显示收藏区");
   check(interaction.modalOpen && interaction.hasQrBtn, "http 链接弹出二次确认浮层并提供扫码入口");
   check(interaction.qrRendered, "二维码在本地点阵渲染成功");
   check(interaction.guideModalOpen && interaction.guideTitleMatches && interaction.guideHasSteps,
@@ -473,7 +496,7 @@ fs.writeFileSync(path.join(OUT, "qa-site.json"), JSON.stringify(report, null, 1)
 
 console.log("=== 站点自检 ===");
 console.log(`数据：${report.dataSummary.entries} 条（可跳转 ${report.dataSummary.linkable}，引导 ${report.dataSummary.guides}，失效 ${report.dataSummary.dead}，第三方收录 ${report.dataSummary.thirdParty}）`);
-console.log(`图片：${imgOk} 张主图，${hiCount} 张 2 倍图${imgMissing.length ? "，缺失 " + imgMissing.join(",") : ""}`);
+console.log(`图片：${imgOk} 张 1x 卡片图（560×350），${img2xCount} 张 2x，${tinyCount} 张内联占位`);
 if (Object.keys(render).length) console.log("渲染：", JSON.stringify(render));
 console.log(`\n通过 ${notes.length} 项，问题 ${problems.length} 项`);
 if (problems.length) console.log("\n问题清单:\n - " + problems.join("\n - "));

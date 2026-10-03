@@ -25,21 +25,11 @@
   }
   applyData(window.__NAV_DATA__);
 
-  var LS_FAV = "rmnav.favs.v1";
   var UTM_SOURCE = "cnyh_nav";
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
 
   /* ---------------------------------------------------------------- 工具 */
-  var store = {
-    get: function (k, d) {
-      try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; }
-    },
-    set: function (k, v) {
-      try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {}
-    }
-  };
-
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
@@ -88,26 +78,39 @@
     } catch (err) { return e.url; }
   }
 
-  /* ------------------------------------------------------------ 收藏 */
-  var favs = store.get(LS_FAV, []);
-
-  /* 清理已下线功能的本地残留（旧版本记录过"最近浏览"） */
-  try { localStorage.removeItem("rmnav.recent.v1"); } catch (e) {}
-
-  function isFav(id) { return favs.indexOf(id) > -1; }
-  function toggleFav(id) {
-    var i = favs.indexOf(id);
-    if (i > -1) { favs.splice(i, 1); toast("已取消收藏"); }
-    else { favs.push(id); toast("已加入收藏"); }
-    store.set(LS_FAV, favs);
-    syncFavUI();
-  }
+  /* 清理已下线功能的本地残留（旧版本记录过"最近浏览"与"收藏"） */
+  try {
+    localStorage.removeItem("rmnav.recent.v1");
+    localStorage.removeItem("rmnav.favs.v1");
+  } catch (e) {}
 
   /* ------------------------------------------------------------ 预览图 */
+  /* 弱网优化：先显示内联的模糊占位（已随 HTML 一起到达，零额外请求），
+     真实图片用 srcset/sizes 让浏览器按屏宽挑合适档位，加载完成后淡入。 */
+  var PLACEHOLDERS = window.__NAV_PLACEHOLDERS__ || {};
+
+  function placeholderFor(e) {
+    return PLACEHOLDERS[e.id] || "";
+  }
+
   function thumbHTML(e, lazy) {
     if (e.image && e.hasShot !== false) {
-      return '<span class="thumb"><img src="' + esc(e.image) + '" alt="' + esc(e.venue + " —— " + e.name) +
-        '" loading="' + (lazy ? "lazy" : "eager") + '" decoding="async" width="800" height="500"></span>';
+      var ph = placeholderFor(e);
+      var phStyle = ph ? ' style="background-image:url(' + ph + ')"' : "";
+      var src = esc(e.image);
+      var set = src + " 560w, " + esc(e.image.replace(/\.jpg$/, "@2x.jpg")) + " 840w";
+      /* sizes 按实测栅格给定（1440px 视口为 3 列、单列约 387px；手机 390px 两列约 187px）：
+         浏览器取 min(sizes×DPR, 视口宽×DPR) 再挑最接近的候选。
+         - 桌面 DPR1：387px → 取 560w（1.45x）
+         - 手机 DPR3：187×3=561px → 取 560w（位置宽 234px，2.4x，高密度屏清晰）
+         两端都落在 560w，不会退到 320w 变体，也不会过取 840w。 */
+      var sizes = "(max-width:620px) 48vw, 400px";
+      return '<span class="thumb loading"' + phStyle + '>' +
+        '<img src="' + src + '" srcset="' + set + '" sizes="' + sizes + '" ' +
+        'alt="' + esc(e.venue + " —— " + e.name) + '" ' +
+        'loading="' + (lazy ? "lazy" : "eager") + '" decoding="async" ' +
+        'width="560" height="350" onload="this.parentNode.classList.remove(\'loading\')"' +
+        (lazy ? "" : ' fetchpriority="high"') + "></span>";
     }
     var why = e.dead ? deadLabel(e) : "暂未采到预览图";
     return '<span class="thumb ph"><span class="ph-in">' +
@@ -139,7 +142,6 @@
 
   function cardHTML(e, lazy) {
     var cta = e.linkable ? (e.risk === "guide" ? "查看操作路径" : e.dead ? "仍要尝试打开" : "立即观展") : "查看操作路径";
-    var fav = isFav(e.id);
     return '<article class="card' + (e.dead ? " is-dead" : "") + '" data-id="' + e.id + '">' +
       '<a class="card-link" href="#" data-act="open" aria-label="' + esc(esc(cta) + "：" + e.venue + " " + e.name) + '">' +
         thumbHTML(e, lazy) + badgesHTML(e) +
@@ -153,9 +155,6 @@
           '<button class="btn-go' + (e.risk === "guide" || !e.linkable ? " guide" : "") + '" type="button" data-act="open">' +
             '<svg viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>' +
             esc(cta) + "</button>" +
-          '<button class="btn-fav' + (fav ? " on" : "") + '" type="button" data-act="fav" aria-label="收藏 ' + esc(e.venue) + '" aria-pressed="' + fav + '">' +
-            '<svg viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.3 5.9.86-4.25 4.15 1 5.86L12 16.9l-5.25 2.77 1-5.86L3.5 9.66l5.9-.86z"/></svg>' +
-          "</button>" +
         "</div>" +
       "</div></article>";
   }
@@ -314,7 +313,6 @@
       var act = ev.target.closest("[data-act]");
       if (!act) return;
       ev.preventDefault();
-      if (act.getAttribute("data-act") === "fav") { toggleFav(e.id); return; }
       openEntry(e);
     });
   }
@@ -329,7 +327,7 @@
     { key: "region", label: "属地", row: "#rowRegion" },
     { key: "state", label: "状态", row: "#rowState" }
   ];
-  var STATE_LABEL = { ok: "官方确认", warn: "待复核", dead: "可能失效", fav: "我的收藏" };
+  var STATE_LABEL = { ok: "官方确认", warn: "待复核", dead: "可能失效" };
 
   /* 清空全部筛选（含合辑条件） */
   function clearAll() {
@@ -399,7 +397,6 @@
     if (state.state === "ok" && !(e.verified && !e.dead)) return false;
     if (state.state === "warn" && e.verified) return false;
     if (state.state === "dead" && !e.dead) return false;
-    if (state.state === "fav" && !isFav(e.id)) return false;
     if (state.q) {
       var hay = (e.venue + " " + e.region + " " + e.name + " " + e.etype + " " + e.group + " " + e.mobile + " " + e.url).toLowerCase();
       var words = state.q.toLowerCase().split(/\s+/).filter(Boolean);
@@ -448,8 +445,7 @@
       chip("全部", "", null, !state.state) +
       chip("官方确认", "ok", ENTRIES.filter(function (e) { return e.verified && !e.dead; }).length, state.state === "ok") +
       chip("待复核", "warn", warnN, state.state === "warn", true) +
-      (deadN ? chip("可能失效", "dead", deadN, state.state === "dead", true) : "") +
-      chip("我的收藏", "fav", favs.length, state.state === "fav");
+      (deadN ? chip("可能失效", "dead", deadN, state.state === "dead", true) : "");
     $("#rowState").innerHTML = sh;
   }
 
@@ -535,28 +531,6 @@
     }).join("");
   }
 
-  function renderFavs() {
-    var items = favs.map(function (id) { return byId[id]; }).filter(Boolean);
-    $("#favBlock").hidden = !items.length;
-    $("#favGrid").innerHTML = items.map(function (e) { return cardHTML(e, true); }).join("");
-    var has = favs.length > 0;
-    var fb = $("#favBtn");
-    fb.classList.toggle("has", has);
-    $("#favCount").textContent = favs.length;
-  }
-
-  function syncFavUI() {
-    $$(".card").forEach(function (c) {
-      var id = c.getAttribute("data-id");
-      var b = $(".btn-fav", c);
-      if (!b) return;
-      b.classList.toggle("on", isFav(id));
-      b.setAttribute("aria-pressed", String(isFav(id)));
-    });
-    renderFavs();
-    renderFilters();
-  }
-
   function renderFilterSummary() {
     var act = activeFacets();
     var box = $("#filterSummary");
@@ -628,7 +602,6 @@
 
     renderFilters();
     renderFilterSummary();
-    syncFavUI();
   }
 
   /* ------------------------------------------------------------ 顶层导航 */
@@ -671,7 +644,6 @@
     bindGrid($("#eraContainer"));
     bindGrid($("#venueContainer"));
     bindGrid($("#featuredRail"));
-    bindGrid($("#favGrid"));
 
     $("#guideList").addEventListener("click", function (ev) {
       var b = ev.target.closest("[data-gid]");
@@ -728,18 +700,6 @@
     $("#btnReset").addEventListener("click", reset);
     $("#btnReset2").addEventListener("click", reset);
     $("#btnFilterReset").addEventListener("click", reset);
-
-    $("#favBtn").addEventListener("click", function () {
-      state.state = state.state === "fav" ? "" : "fav";
-      render();
-      if (state.state === "fav") {
-        var el = $("#favBlock");
-        el.hidden = false;
-        if (!favs.length) toast("还没有收藏，点击卡片右下角 ☆ 收藏");
-        else el.scrollIntoView({ block: "start" });
-      }
-    });
-    $("#btnClearFav").addEventListener("click", function () { favs = []; store.set(LS_FAV, favs); render(); });
 
     var toggle = function () {
       var eraVisible = !$("#timelineBlock").hidden;

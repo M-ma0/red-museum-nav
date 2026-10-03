@@ -1,4 +1,4 @@
-/* ==========================================================================
+﻿/* ==========================================================================
    红色博物馆 · 云上观展导航  样式表
    设计基调：庄重红博风 —— 米白纸面 + 正红主色 + 烫金点缀 + 细腻分隔线
    ========================================================================== */
@@ -104,20 +104,6 @@ img { display: block; }
 }
 .topnav a:hover { background: var(--red-soft); color: var(--red); }
 .topnav a.is-active { background: var(--red); color: #fff; }
-
-.fav-btn {
-  display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
-  border: 1px solid var(--line); background: #fff; color: var(--ink-2);
-  padding: 7px 12px; border-radius: 7px; font-size: 13.5px;
-  transition: border-color .15s, color .15s, background .15s;
-}
-.fav-btn:hover { border-color: var(--red-line); color: var(--red); background: var(--red-soft); }
-.fav-btn .n {
-  min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
-  background: var(--bg-2); color: var(--ink-2);
-  font-size: 11.5px; display: inline-grid; place-items: center; font-weight: 600;
-}
-.fav-btn.has .n { background: var(--red); color: #fff; }
 
 /* ============================ 首屏 ============================ */
 .hero {
@@ -309,12 +295,16 @@ section.block { margin-top: 40px; scroll-margin-top: 120px; }
 .thumb {
   position: relative; aspect-ratio: 16 / 10; overflow: hidden;
   background: var(--bg-2); display: block;
+  background-size: cover; background-position: center;
 }
 .thumb img {
   width: 100%; height: 100%; object-fit: cover;
-  transition: transform .45s ease;
-  background: var(--bg-2);
+  transition: transform .45s ease, opacity .35s ease;
+  background: transparent;
 }
+/* 模糊占位：真实图未到位时先显示内联微缩图（放大后自然模糊），到位后淡入 */
+.thumb.loading img { opacity: 0; }
+.thumb:not(.loading) img { opacity: 1; }
 .card:hover .thumb img { transform: scale(1.045); }
 .thumb::after {
   content: ""; position: absolute; inset: auto 0 0 0; height: 46%;
@@ -389,16 +379,6 @@ section.block { margin-top: 40px; scroll-margin-top: 120px; }
 .btn-go svg { width: 14px; height: 14px; fill: #fff; }
 .btn-go.guide { background: linear-gradient(145deg, #b8862a, var(--gold)); }
 .card.is-dead .btn-go { background: #8d939b; }
-.btn-fav {
-  width: 38px; height: 38px; flex-shrink: 0; border: 1px solid var(--line);
-  background: #fff; border-radius: 7px; display: grid; place-items: center;
-  transition: border-color .15s, background .15s;
-}
-.btn-fav svg { width: 17px; height: 17px; fill: none; stroke: var(--ink-3); stroke-width: 1.7; }
-.btn-fav:hover { border-color: var(--gold-line); background: var(--gold-soft); }
-.btn-fav:hover svg { stroke: var(--gold); }
-.btn-fav.on { border-color: var(--gold-line); background: var(--gold-soft); }
-.btn-fav.on svg { fill: var(--gold); stroke: var(--gold); }
 
 /* ============================ 横向滚动条（推荐/最近） ============================ */
 .rail { display: flex; gap: 15px; overflow-x: auto; padding: 20px 2px 12px; scroll-snap-type: x proximity; }
@@ -560,7 +540,6 @@ footer b { color: var(--ink-2); }
   .card-title { font-size: 12.5px; }
   .note { display: none; }
   .btn-go { font-size: 12.5px; padding: 8px; }
-  .btn-fav { width: 34px; height: 34px; }
   .rail > * { flex: 0 0 236px; }
   .brand-txt span { display: none; }
   .searchbox kbd { display: none; }
@@ -575,6 +554,6 @@ footer b { color: var(--ink-2); }
   html { scroll-behavior: auto; }
 }
 @media print {
-  .topbar, .filterbar, .rail, .totop, .btn-fav, .overlay { display: none !important; }
+  .topbar, .filterbar, .rail, .totop, .overlay { display: none !important; }
   .card { break-inside: avoid; box-shadow: none; }
 }

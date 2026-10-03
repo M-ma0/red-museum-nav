@@ -26,12 +26,6 @@
       </span>
     </a>
     <nav class="topnav" id="topnav" aria-label="页面导航"></nav>
-    <button class="fav-btn" id="favBtn" type="button" aria-label="查看我的收藏">
-      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-        <path d="M12 3.5l2.6 5.3 5.9.86-4.25 4.15 1 5.86L12 16.9l-5.25 2.77 1-5.86L3.5 9.66l5.9-.86z"/>
-      </svg>
-      我的收藏 <span class="n" id="favCount">0</span>
-    </button>
   </div>
 </header>
 
@@ -85,17 +79,6 @@
     <span class="spacer"></span>
     <button class="btn-reset" id="btnReset" type="button" hidden>清除全部筛选</button>
   </div>
-
-  <!-- 我的收藏 -->
-  <section class="block" id="favBlock" hidden>
-    <div class="block-head">
-      <h2>我的收藏</h2>
-      <span class="hint">点击卡片右上角 ☆ 可收藏或取消</span>
-      <span class="spacer"></span>
-      <button class="btn-reset" id="btnClearFav" type="button">清空收藏</button>
-    </div>
-    <div class="grid compact" id="favGrid"></div>
-  </section>
 
   <!-- 云上观展合辑（全部入口都在时序视图里，这里给一个"按观展方式"的轻量入口） -->
   <section class="block" id="cloudBlock">
@@ -195,6 +178,7 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="data/entries.js"></script>
+<script src="data/placeholders.js"></script>
 <script src="assets/qr.js"></script>
 <script src="assets/app.js"></script>
 </body>
