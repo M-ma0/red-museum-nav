@@ -177,8 +177,33 @@ if (CHROME) {
       venueCards: venueIds.size,
       brokenImages: broken,
       searchVisible: !!document.querySelector("#q"),
-      statsText: (document.querySelector("#stats")?.innerText || "").replace(/\s+/g, " "),
-      statCount: document.querySelectorAll("#stats .stat").length,
+      /* 首屏统计卡已删除；搜索框移到顶栏右上 */
+      statLeftovers: document.querySelectorAll("#stats, .stat").length,
+      searchInTopbar: !!document.querySelector(".topbar #q"),
+      searchRightOfNav: (() => {
+        const t = document.querySelector(".topsearch");
+        const n = document.querySelector("#topnav");
+        return !!(t && n && t.getBoundingClientRect().left > n.getBoundingClientRect().left + 10);
+      })(),
+      /* 1440 下顶栏必须一行放下品牌 + 导航 + 搜索，导航不许被切 */
+      navClipped: (() => {
+        const n = document.querySelector("#topnav");
+        return n.scrollWidth > n.clientWidth + 2;
+      })(),
+      bgColor: {
+        topbar: getComputedStyle(document.querySelector(".topbar")).backgroundColor,
+        hero: getComputedStyle(document.querySelector(".hero")).backgroundColor,
+        footer: getComputedStyle(document.querySelector("footer")).backgroundColor,
+      },
+      topbarVar: getComputedStyle(document.documentElement).getPropertyValue("--topbar-h").trim(),
+      /* 筛选栏的吸顶偏移必须等于顶栏实测高度，否则会被顶栏压住 */
+      filterbarTopCss: getComputedStyle(document.querySelector(".filterbar")).top,
+      topbarH: Math.round(document.querySelector(".topbar").getBoundingClientRect().height),
+      /* 首屏 / 筛选栏 / 结果栏的左边界必须与顶栏品牌一致（.hero-in 的 padding 简写曾清掉 22px） */
+      alignLeft: (() => {
+        const l = (s) => Math.round(document.querySelector(s).getBoundingClientRect().left);
+        return { brand: l(".brand"), hero: l(".hero .eyebrow"), filter: l(".filterbar .fctl-toggle"), result: l(".resultbar") };
+      })(),
       footSource: (document.querySelector("#footSource")?.innerText || "").replace(/\s+/g, " "),
       // 弱网优化：模糊占位是否内联生效
       inlinePlaceholders: Array.from(document.querySelectorAll(".thumb"))
@@ -439,8 +464,22 @@ if (CHROME) {
   check(render.deadBadges === 0, `页面不再出现"失效"角标（${render.deadBadges} 个）`);
   check(render.heroTitle === `${entries.length} 个红色博物馆线上入口`,
     `首屏标题与展示条数一致（「${render.heroTitle}」）`);
-  check(render.statCount === 3 && !/官方确认|可直接跳转/.test(render.statsText),
-    `首屏统计为 3 张卡（${render.statsText}）`);
+  /* 版面：统计卡删除、搜索框在顶栏右上、红幕与暖纸底 */
+  const rgb = (s) => (s.match(/\d+/g) || []).slice(0, 3).map(Number);
+  const isDeepRed = (s) => {
+    const [r, g, b] = rgb(s);
+    return r >= 85 && r <= 200 && r - g >= 45 && g >= b - 8;
+  };
+  check(render.statLeftovers === 0, `首屏统计卡已删除（残留 ${render.statLeftovers}）`);
+  check(render.searchInTopbar && render.searchRightOfNav, "搜索框位于顶栏右上（导航右侧）");
+  check(!render.navClipped, "桌面端顶栏一行放下品牌 + 导航 + 搜索（导航未被切）");
+  check(isDeepRed(render.bgColor.topbar) && isDeepRed(render.bgColor.hero) && isDeepRed(render.bgColor.footer),
+    `顶栏 / 首屏 / 页脚均为深红底色（${render.bgColor.topbar} / ${render.bgColor.hero} / ${render.bgColor.footer}）`);
+  check(render.topbarVar === render.topbarH + "px" && render.filterbarTopCss === render.topbarH + "px",
+    `筛选栏吸顶偏移跟随顶栏实测高度（--topbar-h=${render.topbarVar}，top=${render.filterbarTopCss}）`);
+  const al = render.alignLeft;
+  check(new Set([al.brand, al.hero, al.filter, al.result]).size === 1,
+    `首屏 / 筛选栏 / 结果栏与顶栏左对齐（品牌 ${al.brand}、首屏 ${al.hero}、筛选栏 ${al.filter}、结果 ${al.result}）`);
   // 首屏文案里的场馆数必须与统计一致，避免出现"14 家"这类过期文案
   const venueCount = String(Object.keys(entries.reduce((m, e) => (m[e.venue] = 1, m), {})).length);
   check(render.heroVenues === venueCount && render.heroLead.includes(`汇集全国 ${venueCount} 家`),

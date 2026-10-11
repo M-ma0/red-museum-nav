@@ -605,11 +605,17 @@
   }
 
   /* ------------------------------------------------------------ 顶层导航 */
+  /* 顶栏一行要放品牌 + 导航 + 搜索，长分组名在导航里用短名（区块标题仍用全名） */
+  var NAV_SHORT = { "为新中国奠基": "香山", "公众号/小程序": "小程序" };
+
   function renderTopnav() {
     var groups = activeGroups();
     var links = [{ id: "featuredBlock", t: "精选推荐" }]
-      .concat(groups.map(function (g, i) { return { id: "era" + i, t: g.split(" · ")[0] }; }))
-      .concat([{ id: "guideBlock", t: "公众号/小程序" }]);
+      .concat(groups.map(function (g, i) {
+        var full = g.split(" · ")[0];
+        return { id: "era" + i, t: NAV_SHORT[full] || full };
+      }))
+      .concat([{ id: "guideBlock", t: NAV_SHORT["公众号/小程序"] }]);
     $("#topnav").innerHTML = links.map(function (l) {
       return '<a href="#' + l.id + '">' + esc(l.t) + "</a>";
     }).join("");
@@ -729,22 +735,30 @@
     };
   }
 
-  /* ------------------------------------------------------------ 页头统计 */
-  function renderStats() {
+  /* ------------------------------------------------------------ 首屏文案 */
+  function renderHero() {
     var venues = Object.keys(ENTRIES.reduce(function (m, e) { m[e.venue] = 1; return m; }, {})).length;
-    var panos = ENTRIES.filter(function (e) { return /720|3D|全景/.test(e.etype); }).length;
-    // 标题与统计都跟随实际展示的条目数，隐藏/删除条目后不会对不上
+    // 标题里的条数跟随实际展示的条目，删除条目后不会对不上
     $("#heroTitle").textContent = ENTRIES.length + " 个红色博物馆线上入口";
     var hv = $("#heroVenues");
     if (hv) hv.textContent = venues;
-    var cards = [
-      [ENTRIES.length, "线上入口"],
-      [venues, "家场馆"],
-      [panos, "个全景/3D展馆"]
-    ];
-    $("#stats").innerHTML = cards.map(function (c) {
-      return '<span class="stat"><b>' + c[0] + "</b><span>" + c[1] + "</span></span>";
-    }).join("");
+  }
+
+  /* ------------------------------------------------- 顶栏高度 / 吸顶状态 */
+  /* 搜索框在窄屏会换行，顶栏高度随之变化：实测后写进 --topbar-h，
+     吸顶筛选栏与锚点滚动都跟着它走，不会互相压住。
+     另外，红幕（顶栏 + 首屏）走完之前不加投影，否则红色块之间会出现一条硬边。 */
+  function syncChrome() {
+    var tb = $(".topbar");
+    if (!tb) return;
+    var h = tb.offsetHeight;
+    document.documentElement.style.setProperty("--topbar-h", h + "px");
+    var hero = $(".hero");
+    var red = h + (hero ? hero.offsetHeight : 0);
+    document.documentElement.classList.toggle("is-stuck", window.scrollY > red - 8);
+    // 窄屏导航放不下时可横向滑动，加个渐隐提示，免得最后一项像是被"切掉"了
+    var nav = $("#topnav");
+    if (nav) document.documentElement.classList.toggle("nav-overflow", nav.scrollWidth > nav.clientWidth + 2);
   }
 
   function renderFooter() {
@@ -773,11 +787,15 @@
       return;
     }
     renderTopnav();
-    renderStats();
+    renderHero();
     renderFooter();
     bind();
     render();
     initScrollSpy();
+    syncChrome();
+    window.addEventListener("resize", syncChrome, { passive: true });
+    window.addEventListener("scroll", syncChrome, { passive: true });
+    if (window.ResizeObserver) new ResizeObserver(syncChrome).observe($(".topbar"));
   }
 
   /* 若通过 http(s) 打开，尝试用最新 JSON 覆盖（便于后续维护时只改 JSON） */

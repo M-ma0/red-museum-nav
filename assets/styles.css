@@ -13,16 +13,28 @@
   --gold-soft: #fff6e5;
   --gold-line: #f0dfb8;
 
+  /* 深红版面：顶栏 / 首屏 / 页脚共用同一块红幕 */
+  --red-900: #7c151d;
+  --red-850: #8a1821;
+  --red-950: #5e1017;
+  --gold-bright: #f0d28c;
+  --gold-hair: rgba(240, 210, 140, .42);
+  /* 极细斜纹 + 细颗粒：让红面有织物感，不是一片纯色渐变 */
+  --tex-weave: repeating-linear-gradient(115deg,
+      rgba(255, 255, 255, .05) 0 1px, rgba(255, 255, 255, 0) 1px 9px);
+  --tex-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  --tex-star: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l2.6 5.3 5.9.86-4.25 4.15 1 5.86L12 15.4l-5.25 2.77 1-5.86L3.5 8.16l5.9-.86z' fill='%23fff' fill-opacity='.11'/%3E%3C/svg%3E");
+
   /* 中性色 */
   --ink: #1f2328;
   --ink-2: #4a5058;
   --ink-3: #7b828c;
   --ink-4: #a8aeb6;
-  --bg: #fbfaf8;
-  --bg-2: #f5f2ec;
+  --bg: #f8f3ec;
+  --bg-2: #f3ece2;
   --card: #ffffff;
-  --line: #e5e2dc;
-  --line-2: #f0ede7;
+  --line: #e9dfd2;
+  --line-2: #f2ebe1;
 
   /* 语义色 */
   --blue: #2c5f8a;
@@ -48,7 +60,12 @@ html { scroll-behavior: smooth; }
 
 body {
   margin: 0;
-  background: var(--bg);
+  /* 暖纸底 + 顶部一片红晕，让红幕与内容区自然接续 */
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(1000px 380px at 50% -120px, rgba(154, 32, 41, .11), rgba(154, 32, 41, 0) 72%),
+    linear-gradient(180deg, #f8f2ea 0%, #f6efe6 52%, #f2eadf 100%);
+  background-repeat: no-repeat;
   color: var(--ink);
   font-family: var(--font);
   font-size: 15px;
@@ -78,103 +95,139 @@ img { display: block; }
 /* ============================ 顶部 ============================ */
 .topbar {
   position: sticky; top: 0; z-index: 60;
-  background: rgba(255, 255, 255, .92);
-  backdrop-filter: saturate(180%) blur(12px);
-  border-bottom: 1px solid var(--line);
+  background-color: var(--red-900);
+  background-image: var(--tex-weave), linear-gradient(180deg, var(--red-850) 0%, var(--red-900) 100%);
+  color: #fff;
+}
+/* 滚过首屏后才加投影：红幕未走完时加投影会在红面上留一条接缝 */
+.is-stuck .topbar { box-shadow: 0 8px 22px rgba(48, 8, 12, .22); }
+.topbar::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image: var(--tex-noise);
+  mix-blend-mode: overlay;
 }
 .topbar-in {
-  max-width: var(--maxw); margin: 0 auto; padding: 10px 22px;
-  display: flex; align-items: center; gap: 16px;
+  position: relative; z-index: 1;
+  max-width: var(--maxw); margin: 0 auto; padding: 9px 22px;
+  display: flex; align-items: center; gap: 14px;
 }
 .brand { display: flex; align-items: center; gap: 11px; flex-shrink: 0; }
 .brand-mark {
   width: 36px; height: 36px; border-radius: 8px; flex-shrink: 0;
-  background: linear-gradient(145deg, var(--red-bright), var(--red-deep));
+  background: linear-gradient(145deg, #f7e2ab, #d9ac4a);
   display: grid; place-items: center;
-  box-shadow: 0 2px 6px rgba(184, 35, 47, .28);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .22);
 }
-.brand-mark svg { width: 21px; height: 21px; fill: #f6d67a; }
-.brand-txt b { display: block; font-size: 15.5px; letter-spacing: .3px; line-height: 1.25; }
-.brand-txt span { display: block; font-size: 11.5px; color: var(--ink-3); letter-spacing: .4px; }
+.brand-mark svg { width: 21px; height: 21px; fill: var(--red-deep); }
+.brand-txt b { display: block; font-size: 15.5px; letter-spacing: .3px; line-height: 1.25; color: #fff; }
+/* 英文副标题会让品牌块宽 70px 且带模板味，顶栏一行要放下导航与搜索，收起不用 */
+.brand-txt span { display: none; }
 
-.topnav { margin-left: auto; display: flex; align-items: center; gap: 4px; }
+.topnav {
+  margin-left: auto; display: flex; align-items: center; gap: 4px;
+  min-width: 0; overflow-x: auto; scrollbar-width: none;
+}
+.topnav::-webkit-scrollbar { height: 0; }
 .topnav a {
-  font-size: 13.5px; padding: 7px 12px; border-radius: 7px; color: var(--ink-2);
+  font-size: 13px; padding: 7px 10px; border-radius: 7px; color: rgba(255, 255, 255, .84);
   white-space: nowrap; transition: background .15s, color .15s;
 }
-.topnav a:hover { background: var(--red-soft); color: var(--red); }
-.topnav a.is-active { background: var(--red); color: #fff; }
+.topnav a:hover { background: rgba(255, 255, 255, .14); color: #fff; }
+.topnav a.is-active { background: var(--gold-bright); color: #6a1015; font-weight: 600; }
+/* 导航位置不够、可横向滑动时，右缘渐隐（JS 实测溢出后才加这个类） */
+.nav-overflow .topnav {
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 26px), transparent 100%);
+  mask-image: linear-gradient(90deg, #000 calc(100% - 26px), transparent 100%);
+}
+
+/* 搜索框：顶栏右上 */
+.topsearch { flex: 0 1 300px; min-width: 150px; }
 
 /* ============================ 首屏 ============================ */
 .hero {
-  border-bottom: 3px solid var(--red);
-  background:
-    radial-gradient(1100px 260px at 12% -20%, #fdeceb 0%, rgba(253, 236, 235, 0) 70%),
-    var(--bg);
-  position: relative;
-  overflow: hidden;
+  position: relative; overflow: hidden;
+  background-color: var(--red-900);
+  background-image: var(--tex-weave), linear-gradient(180deg, var(--red-900) 0%, #8f1b24 42%, var(--red-950) 100%);
+  color: #fff;
+  border-bottom: 1px solid var(--gold-hair);
 }
+.hero::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image: var(--tex-noise);
+  mix-blend-mode: overlay;
+}
+/* 右侧五角星水印 + 左上烫金光晕，顶部渐隐，所以与顶栏之间看不到接缝 */
 .hero::after {
-  content: ""; position: absolute; right: -70px; top: -70px; width: 260px; height: 260px;
-  border-radius: 50%; background: radial-gradient(circle, rgba(184, 35, 47, .07), transparent 68%);
-  pointer-events: none;
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image:
+    var(--tex-star),
+    radial-gradient(760px 250px at 12% 4%, rgba(240, 210, 140, .20), rgba(240, 210, 140, 0) 70%);
+  background-repeat: no-repeat;
+  background-position: right -64px top -74px, left top;
+  background-size: 400px 400px, 100% 100%;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 36px);
+  mask-image: linear-gradient(180deg, transparent 0, #000 36px);
 }
-.hero-in { padding: 36px 0 34px; position: relative; }
+/* 注意：这里必须写全左右内边距 —— 用 padding 简写会把 .wrap 的 22px 清成 0，
+   首屏内容就会比顶栏、卡片区左移 22px */
+.hero-in { padding: 32px 22px; position: relative; z-index: 1; }
 .eyebrow {
-  display: inline-block; font-size: 12px; letter-spacing: 3px; color: var(--red);
-  border: 1px solid var(--red-line); background: var(--red-soft);
+  display: inline-block; font-size: 12px; letter-spacing: 3px; color: var(--gold-bright);
+  border: 1px solid rgba(240, 210, 140, .45); background: rgba(0, 0, 0, .18);
   padding: 3px 12px; border-radius: 2px; margin-bottom: 15px;
 }
 .hero h1 {
-  font-size: 34px; line-height: 1.28; margin: 0 0 12px; letter-spacing: .5px; font-weight: 700;
+  font-size: 35px; line-height: 1.28; margin: 0 0 12px; letter-spacing: .5px; font-weight: 700;
+  color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, .16);
+  text-wrap: balance;   /* 换行时避免末行只剩一个字 */
 }
-.hero h1 em {
-  font-style: normal; color: var(--red);
-  background: linear-gradient(transparent 62%, rgba(184, 35, 47, .14) 62%);
+.hero h1 em { font-style: normal; color: var(--gold-bright); }
+.hero p.lead {
+  margin: 0; color: rgba(255, 255, 255, .78); font-size: 15px; max-width: 720px;
+  text-wrap: pretty;
 }
-.hero p.lead { margin: 0 0 18px; color: var(--ink-2); font-size: 15px; max-width: 760px; }
+.hero p.lead b { color: #fff; }
 
-.stats { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 18px; }
-.stat {
-  background: #fff; border: 1px solid var(--line); border-radius: 8px;
-  padding: 9px 15px; min-width: 96px; box-shadow: var(--shadow-1);
-}
-.stat b { display: block; font-size: 21px; line-height: 1.2; color: var(--red); font-weight: 700; }
-.stat span { font-size: 12px; color: var(--ink-3); letter-spacing: .3px; }
-
-.searchrow { display: flex; gap: 10px; max-width: 660px; }
+/* 搜索框（深色底上的玻璃质感） */
 .searchbox {
-  flex: 1; display: flex; align-items: center; gap: 9px;
-  background: #fff; border: 1px solid var(--line); border-radius: 9px;
-  padding: 0 13px; box-shadow: var(--shadow-1);
-  transition: border-color .15s, box-shadow .15s;
+  flex: 1; display: flex; align-items: center; gap: 9px; width: 100%;
+  background: rgba(255, 255, 255, .13);
+  border: 1px solid rgba(255, 255, 255, .26);
+  border-radius: 8px; padding: 0 12px;
+  transition: background .15s, border-color .15s, box-shadow .15s;
 }
-.searchbox:focus-within { border-color: var(--red-line); box-shadow: 0 0 0 3px rgba(184, 35, 47, .08); }
-.searchbox svg { width: 17px; height: 17px; fill: var(--ink-4); flex-shrink: 0; }
+.searchbox:hover { background: rgba(255, 255, 255, .17); }
+.searchbox:focus-within {
+  background: rgba(255, 255, 255, .22);
+  border-color: rgba(240, 210, 140, .78);
+  box-shadow: 0 0 0 3px rgba(240, 210, 140, .18);
+}
+.searchbox svg { width: 16px; height: 16px; fill: rgba(255, 255, 255, .72); flex-shrink: 0; }
 .searchbox input {
-  flex: 1; border: 0; outline: 0; background: transparent;
-  font-size: 15px; padding: 12px 0; color: var(--ink); font-family: inherit;
+  flex: 1; min-width: 0; border: 0; outline: 0; background: transparent;
+  font-size: 14.5px; padding: 9px 0; color: #fff; font-family: inherit;
 }
-.searchbox input::placeholder { color: var(--ink-4); }
+.searchbox input::placeholder { color: rgba(255, 255, 255, .6); }
 .searchbox kbd {
-  font-family: var(--mono); font-size: 11px; color: var(--ink-4);
-  border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px;
-  padding: 1px 6px; background: var(--bg-2); flex-shrink: 0;
+  font-family: var(--mono); font-size: 11px; color: rgba(255, 255, 255, .7);
+  border: 1px solid rgba(255, 255, 255, .3); border-bottom-width: 2px; border-radius: 4px;
+  padding: 1px 6px; background: rgba(0, 0, 0, .18); flex-shrink: 0;
 }
 .btn-clear {
-  border: 0; background: transparent; color: var(--ink-4); font-size: 18px;
+  border: 0; background: transparent; color: rgba(255, 255, 255, .68); font-size: 18px;
   padding: 0 4px; line-height: 1; display: none;
 }
+.btn-clear:hover { color: #fff; }
 .btn-clear.show { display: block; }
 
 /* ============================ 筛选栏 ============================ */
 .filterbar {
-  position: sticky; top: 57px; z-index: 50;
-  background: rgba(251, 250, 248, .95);
+  position: sticky; top: var(--topbar-h, 57px); z-index: 50;
+  background: rgba(247, 242, 235, .94);
   backdrop-filter: saturate(180%) blur(10px);
   border-bottom: 1px solid var(--line);
 }
-.filterbar-in { padding: 11px 0 12px; display: flex; flex-direction: column; gap: 8px; }
+.filterbar-in { padding: 11px 22px 12px; display: flex; flex-direction: column; gap: 8px; }
 
 /* ---------- 云上观展合辑 ---------- */
 .cloud-card {
@@ -258,10 +311,17 @@ img { display: block; }
 .btn-reset:hover { border-color: var(--red-line); color: var(--red); }
 
 /* ============================ 区块 ============================ */
-section.block { margin-top: 40px; scroll-margin-top: 120px; }
+section.block { margin-top: 40px; scroll-margin-top: calc(var(--topbar-h, 57px) + 64px); }
 .block-head {
   display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
-  margin-bottom: 6px; padding-bottom: 10px; border-bottom: 2px solid var(--line);
+  margin-bottom: 6px; padding-bottom: 10px;
+  /* 分隔线从红到金再淡出：内容区不铺红底，靠这条线把红幕续下来 */
+  border-bottom: 0;
+  background-image: linear-gradient(90deg,
+      rgba(184, 35, 47, .5) 0, rgba(168, 129, 26, .28) 22%, rgba(184, 35, 47, .06) 62%, transparent 100%);
+  background-repeat: no-repeat;
+  background-position: left bottom;
+  background-size: 100% 2px;
 }
 .block-head h2 {
   font-size: 20px; margin: 0; padding-left: 13px; border-left: 5px solid var(--red);
@@ -417,21 +477,36 @@ section.block { margin-top: 40px; scroll-margin-top: 120px; }
 .empty p { margin: 0 0 16px; font-size: 13.5px; }
 
 footer {
-  margin-top: 60px; border-top: 1px solid var(--line); background: var(--bg-2);
-  padding: 30px 0 42px; font-size: 12.8px; color: var(--ink-3); line-height: 1.85;
+  position: relative;
+  margin-top: 60px; border-top: 1px solid var(--gold-hair);
+  background-color: var(--red-950);
+  background-image: var(--tex-weave), linear-gradient(180deg, var(--red-950) 0%, #4a0c12 100%);
+  color: rgba(255, 255, 255, .66);
+  padding: 30px 0 42px; font-size: 12.8px; line-height: 1.85;
 }
-footer h4 { font-size: 13.5px; margin: 0 0 8px; color: var(--ink-2); }
+footer::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image: var(--tex-noise);
+  mix-blend-mode: overlay;
+}
+footer > .wrap { position: relative; }
+footer h4 { font-size: 13.5px; margin: 0 0 8px; color: var(--gold-bright); }
 footer .fcols { display: grid; gap: 26px; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
 footer ul { list-style: none; margin: 0; padding: 0; }
 footer li { margin-bottom: 4px; }
-footer b { color: var(--ink-2); }
+footer b { color: rgba(255, 255, 255, .9); }
+footer code {
+  background: rgba(255, 255, 255, .1); color: #f3d9a6;
+  padding: 1px 5px; border-radius: 4px; font-size: 12px;
+}
 .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
 .dot.ok { background: var(--green); }
 .dot.warn { background: var(--gold); }
 .dot.http { background: var(--blue); }
 .dot.guide { background: var(--red); }
-.dot.dead { background: #8d939b; }
-.foot-note { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 12px; }
+.dot.dead { background: #a9a29b; }
+.dot.ok, .dot.warn, .dot.http, .dot.guide { box-shadow: 0 0 0 1px rgba(0, 0, 0, .18); }
+.foot-note { margin-top: 22px; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, .14); font-size: 12px; }
 
 /* ============================ 浮层 / 弹窗 ============================ */
 .overlay {
@@ -516,12 +591,27 @@ footer b { color: var(--ink-2); }
 .totop svg { width: 19px; height: 19px; fill: var(--red); }
 
 /* ============================ 响应式 ============================ */
+/* 顶栏一行要放下品牌 + 导航 + 搜索：按宽度分档收紧，
+   再窄就让导航横向滑动（JS 实测溢出后加 .nav-overflow 做右缘渐隐） */
+@media (max-width: 1260px) {
+  .topnav a { padding: 6px 8px; font-size: 12.5px; }
+  .topsearch { flex-basis: 240px; }
+}
+@media (max-width: 1080px) {
+  .topsearch { flex-basis: 190px; }
+  .topnav a { padding: 5px 7px; }
+}
 @media (max-width: 900px) {
   .hero h1 { font-size: 27px; }
   .topnav { display: none; }
-  .filterbar { top: 57px; }
+  .topsearch { margin-left: auto; }
+  .filterbar { top: var(--topbar-h, 57px); }
 }
 @media (max-width: 620px) {
+  /* 搜索框换到顶栏第二行，占满宽度：手机上更好点、也更好输 */
+  .topbar-in { flex-wrap: wrap; padding: 8px 15px 9px; gap: 8px 10px; }
+  .topsearch { order: 3; flex: 1 1 100%; margin-left: 0; }
+  .brand-txt b { font-size: 14.5px; }
   /* 折叠筛选：展开后最多占半屏，内部各行独立横向滚动 */
   .filterbar-rows.is-open { max-height: 46vh; overflow-y: auto; }
   .fctl-toggle { padding: 5px 11px; font-size: 12.5px; }
@@ -530,11 +620,11 @@ footer b { color: var(--ink-2); }
   .grid,
   .grid.compact { grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 11px; }
   .wrap, .topbar-in { padding-left: 15px; padding-right: 15px; }
-  .hero-in { padding: 28px 0 22px; }
-  .hero h1 { font-size: 23px; }
+  .hero-in { padding: 24px 15px; }
+  .hero h1 { font-size: 22px; }
   .hero p.lead { font-size: 14px; }
-  .stat { padding: 7px 12px; min-width: 82px; }
-  .stat b { font-size: 18px; }
+  .hero::after { background-size: 250px 250px, 100% 100%; background-position: right -80px top -60px, left top; }
+  .eyebrow { margin-bottom: 12px; }
   .card-body { padding: 10px 11px 12px; gap: 7px; }
   .venue { font-size: 13.5px; }
   .card-title { font-size: 12.5px; }
