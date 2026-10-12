@@ -296,7 +296,6 @@ img { display: block; }
 .chip:hover { border-color: var(--red-line); color: var(--red); }
 .chip[aria-pressed="true"] { background: var(--red); border-color: var(--red); color: #fff; }
 .chip .c { opacity: .6; margin-left: 4px; font-size: 11px; }
-.chip.warn[aria-pressed="true"] { background: var(--gold); border-color: var(--gold); }
 
 .resultbar {
   display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
@@ -406,7 +405,6 @@ section.block { margin-top: 40px; scroll-margin-top: calc(var(--topbar-h, 57px) 
 .bdg-type { background: rgba(255, 255, 255, .93); color: var(--red-deep); }
 .bdg-hd { background: rgba(255, 255, 255, .93); color: var(--purple); }
 .bdg-ok { background: rgba(47, 111, 79, .94); color: #fff; }
-.bdg-warn { background: rgba(168, 129, 26, .95); color: #fff; }
 .bdg-http { background: rgba(44, 95, 138, .95); color: #fff; }
 .bdg-dead { background: rgba(74, 80, 88, .95); color: #fff; }
 
@@ -501,11 +499,10 @@ footer code {
 }
 .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
 .dot.ok { background: var(--green); }
-.dot.warn { background: var(--gold); }
 .dot.http { background: var(--blue); }
 .dot.guide { background: var(--red); }
 .dot.dead { background: #a9a29b; }
-.dot.ok, .dot.warn, .dot.http, .dot.guide { box-shadow: 0 0 0 1px rgba(0, 0, 0, .18); }
+.dot.ok, .dot.http, .dot.guide { box-shadow: 0 0 0 1px rgba(0, 0, 0, .18); }
 .foot-note { margin-top: 22px; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, .14); font-size: 12px; }
 
 /* ============================ 浮层 / 弹窗 ============================ */

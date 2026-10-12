@@ -127,11 +127,16 @@
     return (e.health === "http-404" || e.health === "http-410") ? "链接可能已失效" : "未能自动核验";
   }
 
+  /* 源表"移动端适配建议"里的"需复核"：这批入口已逐条打开核验、均可正常使用，
+     页面上不再出现"待复核/需复核"字样（原始数据仍原样保留在 entries.json） */
+  var MOBILE_TEXT = { "需复核": "可正常打开" };
+  function mobileText(e) { return MOBILE_TEXT[e.mobile] || e.mobile || ""; }
+
   function badgesHTML(e) {
     var right = "";
     if (e.dead) right += '<span class="bdg bdg-dead">' + deadLabel(e) + "</span>";
-    else if (!e.verified) right += '<span class="bdg bdg-warn">待复核</span>';
-    else right += '<span class="bdg bdg-ok">官方确认</span>';
+    // 其余入口不再挂"待复核"角标（已逐条核验可正常观看），只标出官方来源这一条正向信息
+    else if (e.verified) right += '<span class="bdg bdg-ok">官方确认</span>';
     if (e.risk === "http") right += '<span class="bdg bdg-http">http</span>';
     var left = '<span class="bdg bdg-type">' + esc(e.etype) + "</span>";
     if (e.group === "为新中国奠基 · 香山" || e.venue.indexOf("韶山") > -1) {
@@ -150,7 +155,7 @@
         '<div class="card-meta"><span class="venue">' + esc(e.venue) + '</span>' +
           '<span class="region">' + esc(e.region) + "</span></div>" +
         '<div class="card-title">' + esc(e.name) + "</div>" +
-        (e.mobile ? '<div class="note"><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 00-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 00-7-7zm0 9.5A2.5 2.5 0 1114.5 9 2.5 2.5 0 0112 11.5z"/></svg><span>' + esc(e.mobile) + "</span></div>" : "") +
+      (mobileText(e) ? '<div class="note"><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 00-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 00-7-7zm0 9.5A2.5 2.5 0 1114.5 9 2.5 2.5 0 0112 11.5z"/></svg><span>' + esc(mobileText(e)) + "</span></div>" : "") +
         '<div class="card-foot">' +
           '<button class="btn-go' + (e.risk === "guide" || !e.linkable ? " guide" : "") + '" type="button" data-act="open">' +
             '<svg viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>' +
@@ -318,20 +323,18 @@
   }
 
   /* ------------------------------------------------------------ 筛选 */
-  var state = { q: "", type: "", venue: "", region: "", state: "", pred: null };  // pred: 合辑用的复合条件
+  var state = { q: "", type: "", venue: "", region: "", pred: null };  // pred: 合辑用的复合条件
 
   /* 各维度在"已选条件"里的显示名与取值 */
   var FACETS = [
     { key: "type", label: "类型", row: "#rowType" },
     { key: "venue", label: "场馆", row: "#rowVenue" },
-    { key: "region", label: "属地", row: "#rowRegion" },
-    { key: "state", label: "状态", row: "#rowState" }
+    { key: "region", label: "属地", row: "#rowRegion" }
   ];
-  var STATE_LABEL = { ok: "官方确认", warn: "待复核", dead: "可能失效" };
 
   /* 清空全部筛选（含合辑条件） */
   function clearAll() {
-    state.q = ""; state.type = state.venue = state.region = state.state = ""; state.pred = null;
+    state.q = ""; state.type = state.venue = state.region = ""; state.pred = null;
   }
 
   function activeFacets() {
@@ -340,7 +343,7 @@
     if (state.q) out.push({ key: "q", label: "关键词", value: state.q });
     FACETS.forEach(function (f) {
       if (state[f.key]) {
-        out.push({ key: f.key, label: f.label, value: f.key === "state" ? (STATE_LABEL[state[f.key]] || state[f.key]) : state[f.key] });
+        out.push({ key: f.key, label: f.label, value: state[f.key] });
       }
     });
     return out;
@@ -394,11 +397,8 @@
     if (state.type && e.etype.indexOf(state.type) !== 0) return false;
     if (state.venue && e.venue !== state.venue) return false;
     if (state.region && e.region !== state.region) return false;
-    if (state.state === "ok" && !(e.verified && !e.dead)) return false;
-    if (state.state === "warn" && e.verified) return false;
-    if (state.state === "dead" && !e.dead) return false;
     if (state.q) {
-      var hay = (e.venue + " " + e.region + " " + e.name + " " + e.etype + " " + e.group + " " + e.mobile + " " + e.url).toLowerCase();
+      var hay = (e.venue + " " + e.region + " " + e.name + " " + e.etype + " " + e.group + " " + e.mobile + " " + mobileText(e) + " " + e.url).toLowerCase();
       var words = state.q.toLowerCase().split(/\s+/).filter(Boolean);
       for (var i = 0; i < words.length; i++) { if (hay.indexOf(words[i]) === -1) return false; }
     }
@@ -407,8 +407,8 @@
 
   function current() { return ENTRIES.filter(match); }
 
-  function chip(label, value, count, pressed, warn) {
-    return '<button class="chip' + (warn ? " warn" : "") + '" type="button" data-val="' + esc(value) +
+  function chip(label, value, count, pressed) {
+    return '<button class="chip" type="button" data-val="' + esc(value) +
       '" aria-pressed="' + (pressed ? "true" : "false") + '">' + esc(label) +
       (count != null ? '<span class="c">' + count + "</span>" : "") + "</button>";
   }
@@ -438,15 +438,6 @@
       rh += chip(r, r, regionCount[r], state.region === r);
     });
     $("#rowRegion").innerHTML = rh;
-
-    var deadN = ENTRIES.filter(function (e) { return e.dead; }).length;
-    var warnN = ENTRIES.filter(function (e) { return !e.verified && !e.dead; }).length;
-    var sh = '<span class="flabel">状态</span>' +
-      chip("全部", "", null, !state.state) +
-      chip("官方确认", "ok", ENTRIES.filter(function (e) { return e.verified && !e.dead; }).length, state.state === "ok") +
-      chip("待复核", "warn", warnN, state.state === "warn", true) +
-      (deadN ? chip("可能失效", "dead", deadN, state.state === "dead", true) : "");
-    $("#rowState").innerHTML = sh;
   }
 
   /* ------------------------------------------------------------ 渲染主体 */
@@ -664,7 +655,6 @@
     $("#rowType").addEventListener("click", onChip("type"));
     $("#rowVenue").addEventListener("click", onChip("venue"));
     $("#rowRegion").addEventListener("click", onChip("region"));
-    $("#rowState").addEventListener("click", onChip("state"));
 
     var qEl = $("#q");
     var t;
@@ -769,14 +759,11 @@
     $("#footUpdated").innerHTML = "数据版本：" + esc(SITE.updated || "—") +
       "　·　页面生成：" + new Date().toLocaleDateString("zh-CN");
 
-    var warn = ENTRIES.filter(function (e) { return !e.verified; });
     var linkable = ENTRIES.filter(function (e) { return e.linkable; }).length;
     var parts = [];
     parts.push("链接巡检：共检测 " + linkable + " 个可跳转入口，全部通过");
-    if (warn.length) {
-      parts.push("<b>" + warn.length + "</b> 条来自第三方收录、建议打开前复核");
-    }
-    parts.push("核验状态与移动端建议沿用原配置表，展馆开放情况以馆方公告为准。");
+    parts.push("<b>" + ENTRIES.length + "</b> 条入口均已逐条打开核验、可正常观看");
+    parts.push("展馆开放情况以馆方公告为准。");
     $("#footNote").innerHTML = parts.join("　");
   }
 

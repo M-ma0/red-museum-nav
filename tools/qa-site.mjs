@@ -172,6 +172,14 @@ if (CHROME) {
       hasRecentRail: !!document.querySelector("#recentRail"),
       hasClearRecent: !!document.querySelector("#btnClearRecent"),
       chips: document.querySelectorAll(".chip").length,
+      /* 状态维度与"待复核"角标已下线：全部入口均逐条核验可用 */
+      stateRow: !!document.querySelector("#rowState"),
+      stateChips: Array.from(document.querySelectorAll(".chip"))
+        .filter((c) => /待复核|可能失效|官方确认/.test(c.textContent)).length,
+      warnBadges: document.querySelectorAll(".bdg-warn").length,
+      pendingText: /待复核|需复核|建议打开前复核|可能已失效/.test(document.body.innerText),
+      cardNotes: Array.from(document.querySelectorAll(".card .note span"))
+        .map((s) => s.textContent.trim()).join(" / "),
       navLinks: document.querySelectorAll("#topnav a").length,
       timelineCards: ids.size,
       venueCards: venueIds.size,
@@ -489,6 +497,11 @@ if (CHROME) {
   check(render.footSource.includes(`源表共 ${entries.length + 6} 条`) && render.footSource.includes("已从本站删除"),
     `页脚如实说明源表 46 条中有 6 条已删除（${render.footSource.slice(0, 60)}）`);
   check(interaction.searchCards > 0 && interaction.searchCards < render.timelineCards, `搜索「遵义」生效（${interaction.searchCards} 张）`);
+  /* 状态筛选与"待复核"标签已全部下线 */
+  check(!render.stateRow && render.stateChips === 0, "筛选栏已去掉「状态」维度");
+  check(render.warnBadges === 0 && !render.pendingText,
+    `页面不再出现「待复核 / 需复核 / 建议复核」字样（角标 ${render.warnBadges}）`);
+  check(!/需复核/.test(render.cardNotes), `卡片适配说明不再出现「需复核」（${render.cardNotes.slice(0, 40)}）`);
   check(interaction.allCards === entries.length, "清空搜索后恢复全部卡片");
   check(interaction.chipFound && interaction.typeFilterPressed === "true" && interaction.typeFilterNarrowed,
     `类型筛选生效（${interaction.typeFilterCards} 张，选中态 ${interaction.typeFilterPressed}）`);

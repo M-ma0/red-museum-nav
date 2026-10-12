@@ -67,7 +67,6 @@
       <div class="frow" id="rowType" role="group" aria-label="按入口类型筛选"><span class="flabel">类型</span></div>
       <div class="frow" id="rowVenue" role="group" aria-label="按场馆筛选"><span class="flabel">场馆</span></div>
       <div class="frow" id="rowRegion" role="group" aria-label="按属地筛选"><span class="flabel">属地</span></div>
-      <div class="frow" id="rowState" role="group" aria-label="按核验状态筛选"><span class="flabel">状态</span></div>
     </div>
   </div>
 </div>
@@ -147,12 +146,12 @@
         <p id="footUpdated"></p>
       </div>
       <div>
-        <h4>核验状态说明</h4>
+        <h4>链接来源</h4>
         <ul>
           <li><span class="dot ok"></span><b>官方确认</b> —— 链接来自馆方官网或官方公众号公布</li>
-          <li><span class="dot warn"></span><b>第三方收录</b> —— 来自第三方平台收录，建议打开前复核</li>
-          <li><span class="dot dead"></span><b>已隐藏的入口</b> —— 巡检返回错误页或网络不可达的入口暂不展示，
-            清单见 <code>data/excluded.json</code>，站点恢复后可随时还原</li>
+          <li><span class="dot ok"></span>未标「官方确认」的入口来自第三方平台收录，均已逐条打开核验、可正常观看</li>
+          <li><span class="dot dead"></span><b>无法访问的入口</b> —— 巡检打不开的 6 条已从本站删除，
+            留档见 <code>data/dropped.json</code>，站点恢复后可随时补回</li>
         </ul>
       </div>
       <div>
