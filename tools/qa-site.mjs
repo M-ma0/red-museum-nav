@@ -206,6 +206,7 @@ if (CHROME) {
       heroTitle: (document.querySelector("#heroTitle")?.textContent || ""),
       heroVenues: (document.querySelector("#heroVenues")?.textContent || ""),
       heroLead: (document.querySelector(".hero .lead")?.innerText || "").replace(/\s+/g, " "),
+      metaDesc: (document.querySelector('meta[name="description"]')?.content || "").replace(/\s+/g, " "),
       thumbs: document.querySelectorAll(".thumb img").length,
       placeholders: document.querySelectorAll(".thumb.ph").length,
       guides: document.querySelectorAll(".guide-card").length,
@@ -610,6 +611,10 @@ if (CHROME) {
   const venueCount = String(Object.keys(entries.reduce((m, e) => (m[e.venue] = 1, m), {})).length);
   check(render.heroVenues === venueCount && render.heroLead.includes(`汇集全国 ${venueCount} 家`),
     `首屏描述中的场馆数为 ${venueCount}（实际「${render.heroVenues}」）`);
+  /* 分享卡片 / 搜索引擎抓的 meta description 也写死了条数，必须与数据同步 */
+  check(render.metaDesc.includes(`汇聚 ${venueCount} 家`) &&
+    render.metaDesc.includes(`的 ${entries.length} 个线上展馆入口`),
+    `meta description 的场馆数与入口数与数据一致（${venueCount} 家 / ${entries.length} 条）：「${render.metaDesc.slice(0, 46)}…」`);
   check(!/已隐藏|未能自动核验|可能已失效/.test(render.resultText + render.footNote),
     `结果栏与页脚不再出现"隐藏/失效"字样（${render.resultText.slice(0, 50)}）`);
   /* 页脚只留对外信息：源表名称、删除记录、链接巡检等内部说明都不再出现 */
