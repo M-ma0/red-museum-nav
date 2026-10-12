@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#b8232f">
+<meta name="robots" content="noindex">
+<meta name="description" content="该线上入口使用 http 链接，微信内置浏览器会拦截。本页说明如何在手机浏览器或其它设备上打开。">
+<title>正在前往 · 红色博物馆云上观展导航</title>
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23b8232f'/%3E%3Cpath d='M16 6l2.9 5.9 6.5.95-4.7 4.6 1.1 6.5L16 20.9 10.2 24l1.1-6.5-4.7-4.6 6.5-.95z' fill='%23f6d67a'/%3E%3C/svg%3E">
+</head>
+<body class="go-page">
+<a class="skip" href="#main">跳到主要内容</a>
+
+<!-- ============================ 顶栏 ============================ -->
+<header class="topbar">
+  <div class="topbar-in">
+    <a class="brand" href="index.html">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M12 2l2.6 5.3 5.9.86-4.25 4.15 1 5.86L12 15.4l-5.25 2.77 1-5.86L3.5 8.16l5.9-.86z"/></svg>
+      </span>
+      <span class="brand-txt">
+        <b>红色博物馆 · 云上观展</b>
+        <span>ONLINE MEMORIAL HALLS NAVIGATOR</span>
+      </span>
+    </a>
+    <a class="btn-go-back" href="index.html" id="goBack">← 返回导航页</a>
+  </div>
+</header>
+
+<!-- ============================ 首屏 ============================ -->
+<div class="hero go-hero" id="top">
+  <div class="wrap hero-in">
+    <span class="eyebrow" id="goEyebrow">该入口使用 http 链接</span>
+    <h1 id="goName">正在打开线上展馆</h1>
+    <p class="lead">
+      <span id="goVenue"></span>
+      <span class="go-type" id="goType" hidden></span>
+    </p>
+  </div>
+</div>
+
+<!-- ============================ 主体 ============================ -->
+<main class="wrap" id="main">
+
+  <!-- 链接参数缺失（例如被截断） -->
+  <div class="empty" id="goMissing" hidden>
+    <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 15h-2v-6h2zm0-8h-2V7h2z"/></svg>
+    <h3>没读到要打开的链接</h3>
+    <p>本页链接可能被截断，请回到导航页重新选择入口。</p>
+    <a class="btn-primary" href="index.html">返回导航页</a>
+  </div>
+
+  <section class="block go-block" id="goPanel">
+    <div class="go-panel">
+      <div class="go-alert" id="goAlert" hidden></div>
+
+      <!-- http 入口：给出在微信内真正能走通的路径 -->
+      <div id="goHttpBlock">
+        <h2>在微信内怎么打开这个入口</h2>
+        <ol class="steps">
+          <li>点下面的 <b>「复制链接」</b>（也可长按下方地址手动选中复制）</li>
+          <li>打开手机上的浏览器：iPhone 用 <b>Safari</b>，安卓用 <b>Chrome / 自带浏览器</b></li>
+          <li>在地址栏<b>粘贴</b>并打开，即可正常参观</li>
+        </ol>
+        <div class="kbox" id="goUrl"></div>
+        <p class="go-utm">打开时会自动附带本站埋点参数（<code>utm_*</code>），便于馆方统计各入口的来源。</p>
+        <div class="go-acts">
+          <button class="btn-primary" type="button" id="goCopy">复制链接</button>
+          <button class="btn-ghost" type="button" id="goOpen">直接打开</button>
+          <button class="btn-ghost" type="button" id="goQr">换设备扫码</button>
+        </div>
+        <div class="go-qr" id="goQrBox" hidden>
+          <div class="qrbox"></div>
+        </div>
+        <p class="go-why">
+          <b>为什么不能直接打开？</b>该展馆的服务器只提供 <code>http://</code> 地址（证书不匹配或没有 https），
+          而微信内置浏览器出于安全策略会拦截 http 网页 —— iPhone 上表现为白屏、安卓上会拦下来。
+          这里的「直接打开」在安卓微信、电脑浏览器里通常可用；iPhone 请走上面的复制链接方式。
+          <br>本页地址是 https，可以放心转发到微信里给其他人。
+        </p>
+      </div>
+
+      <!-- 通用跳转（目标本身是 https） -->
+      <div id="goDirectBlock" hidden>
+        <h2>即将离开本站</h2>
+        <p class="go-why">该入口使用的是 https 地址，可以直接打开。</p>
+        <div class="kbox" id="goUrl2"></div>
+        <div class="go-acts">
+          <button class="btn-primary" type="button" id="goOpen2">立即打开</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="block-head">
+      <h2>继续看别的展馆</h2>
+      <span class="hint">导航页里还有 720° 全景、3D 数字馆、语音导览等入口</span>
+    </div>
+    <div class="go-acts">
+      <button class="btn-ghost" type="button" id="goBackTop">返回导航页</button>
+    </div>
+  </section>
+</main>
+
+<!-- ============================ 页脚 ============================ -->
+<footer>
+  <div class="wrap">
+    <p class="foot-note">
+      本页是「红色博物馆 · 云上观展导航」的 http 入口跳转页：只做说明与转发，
+      不转载任何展馆内容，也不收集用户信息。
+    </p>
+  </div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="data/entries.js"></script>
+<script src="assets/qr.js"></script>
+<script src="assets/util.js"></script>
+<script src="assets/go.js"></script>
+</body>
+</html>

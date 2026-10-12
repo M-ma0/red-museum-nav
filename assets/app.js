@@ -10,7 +10,6 @@
   var SITE = {};
   var ALL_ENTRIES = [];
   var ENTRIES = [];      // 参与展示的入口
-  var DROPPED_N = 0;     // 源表格中已确认无法访问、被删除的入口数（仅用于页脚说明）
   var byId = {};
 
   /* 由原始数据派生展示所用的状态。tryRefresh 覆盖数据后必须重新调用。 */
@@ -19,22 +18,20 @@
     SITE = (d && d.site) || {};
     ALL_ENTRIES = (d && d.entries) || [];
     ENTRIES = ALL_ENTRIES;
-    DROPPED_N = (SITE && SITE.droppedCount) || 0;
     byId = {};
     ENTRIES.forEach(function (e) { byId[e.id] = e; });
   }
   applyData(window.__NAV_DATA__);
 
-  var UTM_SOURCE = "cnyh_nav";
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
 
   /* ---------------------------------------------------------------- 工具 */
-  function esc(s) {
-    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
-    });
-  }
+  /* 转义 / UTM 埋点 / 微信环境判断来自 assets/util.js，与 go.html 共用同一份实现 */
+  var U = window.RMUtil;
+  var esc = U.esc;
+  var trackedUrl = U.trackedUrl;
+  var isWeChat = U.isWeChat;
 
   function toast(msg) {
     var el = $("#toast");
@@ -45,37 +42,9 @@
   }
 
   function copyText(text) {
-    var done = function () { toast("已复制到剪贴板"); };
-    if (navigator.clipboard && window.isSecureContext) {
-      navigator.clipboard.writeText(text).then(done, function () { fallback(); });
-    } else { fallback(); }
-    function fallback() {
-      try {
-        var ta = document.createElement("textarea");
-        ta.value = text;
-        ta.setAttribute("readonly", "");
-        ta.style.cssText = "position:fixed;top:-1000px;opacity:0";
-        document.body.appendChild(ta);
-        ta.select();
-        ta.setSelectionRange(0, text.length);
-        document.execCommand("copy");
-        document.body.removeChild(ta);
-        done();
-      } catch (e) { toast("复制失败，请长按选中链接手动复制"); }
-    }
-  }
-
-  /* 带 UTM 埋点的链接（对应配置检查清单第 8 条） */
-  function trackedUrl(e) {
-    if (!e.url || !/^https?:/i.test(e.url)) return e.url;
-    try {
-      var u = new URL(e.url);
-      u.searchParams.set("utm_source", UTM_SOURCE);
-      u.searchParams.set("utm_medium", e.risk === "guide" ? "guide" : "referral");
-      u.searchParams.set("utm_campaign", "red_museum_nav");
-      u.searchParams.set("utm_content", e.id + "_" + (e.venue || ""));
-      return u.toString();
-    } catch (err) { return e.url; }
+    U.copyText(text,
+      function () { toast("已复制到剪贴板"); },
+      function () { toast("复制失败，请长按选中链接手动复制"); });
   }
 
   /* 清理已下线功能的本地残留（旧版本记录过"最近浏览"与"收藏"） */
@@ -132,6 +101,10 @@
   var MOBILE_TEXT = { "需复核": "可正常打开" };
   function mobileText(e) { return MOBILE_TEXT[e.mobile] || e.mobile || ""; }
 
+  /* 卡片底部适配说明：仍走 http 的入口，说明它在微信内可用路径（entries.json 的 wxnote），
+     避免出现"可直接打开"这种在微信里不成立的话 */
+  function noteText(e) { return e.wxnote || mobileText(e); }
+
   function badgesHTML(e) {
     var right = "";
     if (e.dead) right += '<span class="bdg bdg-dead">' + deadLabel(e) + "</span>";
@@ -147,6 +120,7 @@
 
   function cardHTML(e, lazy) {
     var cta = e.linkable ? (e.risk === "guide" ? "查看操作路径" : e.dead ? "仍要尝试打开" : "立即观展") : "查看操作路径";
+    var note = noteText(e);
     return '<article class="card' + (e.dead ? " is-dead" : "") + '" data-id="' + e.id + '">' +
       '<a class="card-link" href="#" data-act="open" aria-label="' + esc(esc(cta) + "：" + e.venue + " " + e.name) + '">' +
         thumbHTML(e, lazy) + badgesHTML(e) +
@@ -155,7 +129,7 @@
         '<div class="card-meta"><span class="venue">' + esc(e.venue) + '</span>' +
           '<span class="region">' + esc(e.region) + "</span></div>" +
         '<div class="card-title">' + esc(e.name) + "</div>" +
-      (mobileText(e) ? '<div class="note"><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 00-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 00-7-7zm0 9.5A2.5 2.5 0 1114.5 9 2.5 2.5 0 0112 11.5z"/></svg><span>' + esc(mobileText(e)) + "</span></div>" : "") +
+      (note ? '<div class="note"><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 00-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 00-7-7zm0 9.5A2.5 2.5 0 1114.5 9 2.5 2.5 0 0112 11.5z"/></svg><span>' + esc(note) + "</span></div>" : "") +
         '<div class="card-foot">' +
           '<button class="btn-go' + (e.risk === "guide" || !e.linkable ? " guide" : "") + '" type="button" data-act="open">' +
             '<svg viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>' +
@@ -191,12 +165,13 @@
     var sub = e ? e.venue + " · " + e.name : "";
     if (risky) {
       title = e.risk === "http" ? "该入口使用的是 http 链接" : "该入口为特殊域名";
-      if (e.risk === "http") sub = "微信内置浏览器可能拦截 http 链接";
+      if (e.risk === "http") sub = "微信内置浏览器会拦截 http 网页";
       else sub = e.host + " 在 iOS 微信内可能提示风险";
     }
     var body = "";
     if (e && e.risk === "http") {
-      body = "<p>受微信限制，<b>http://</b> 开头的链接在微信内常常无法直接打开。建议复制链接后，用手机浏览器打开。</p>";
+      body = "<p>该入口只有 <b>http://</b> 地址（馆方未提供可用的 https）。" +
+        "桌面浏览器能直接打开；要在手机上参观，请用「复制链接」把地址带到手机浏览器粘贴打开。</p>";
     } else if (e && e.risk === "domain") {
       body = "<p>该入口域名（<b>" + esc(e.host) + "</b>）为馆方官方域名，但在 iOS 微信内可能弹出安全提示。请确认来源后继续访问。</p>";
     } else {
@@ -246,7 +221,8 @@
       '<button class="modal-x" type="button" data-close aria-label="关闭">×</button></div>' +
       '<div class="modal-bd"><div class="qrbox">' +
         (dataUrl ? '<img src="' + dataUrl + '" alt="' + esc(sub) + ' 的二维码" width="190" height="190">' : "") +
-        '<div class="qrtip">用手机相机或微信「扫一扫」对准二维码<br>即可在手机上继续参观</div>' +
+        '<div class="qrtip">用手机<b>相机</b>扫码后在浏览器里打开<br>' +
+        "（微信「扫一扫」扫出来同样会被拦，建议改用「复制链接」）</div>" +
       "</div></div>" +
       '<div class="modal-ft"><button class="btn-ghost" type="button" data-close>关闭</button>' +
       '<button class="btn-ghost" type="button" data-copy="' + esc(url) + '">复制链接</button></div>',
@@ -301,9 +277,14 @@
   });
 
   /* ------------------------------------------------------------ 打开入口 */
+  /* 仍走 http 的入口在微信内不能直接跳（会白屏），先落到同源的 https 跳转页 go.html，
+     由它给出"复制链接到浏览器打开"的可执行路径（源表检查清单第 4 条）。 */
+  function goPageFor(e) { return "go.html?e=" + encodeURIComponent(e.id); }
+
   function openEntry(e) {
     if (!e) return;
     if (!e.linkable || e.risk === "guide") { modalGuide(e); return; }
+    if (e.risk === "http" && isWeChat()) { location.href = goPageFor(e); return; }
     if (e.dead || e.risk === "http" || e.risk === "domain") { modalOpen(e); return; }
     window.open(trackedUrl(e), "_blank", "noopener");
   }
@@ -752,19 +733,14 @@
   }
 
   function renderFooter() {
-    $("#footSource").innerHTML = "本页数据整理自 <b>" + esc(SITE.source || "配置表") + "</b>，" +
-      "源表共 " + (ENTRIES.length + DROPPED_N) + " 条入口记录，其中 " +
-      (DROPPED_N ? "<b>" + DROPPED_N + "</b> 条经巡检确认无法访问、已从本站删除，" : "") +
-      "本站展示 " + ENTRIES.length + " 条。所有链接指向各馆官方或公开平台，本站不转载展馆内容。";
-    $("#footUpdated").innerHTML = "数据版本：" + esc(SITE.updated || "—") +
-      "　·　页面生成：" + new Date().toLocaleDateString("zh-CN");
-
-    var linkable = ENTRIES.filter(function (e) { return e.linkable; }).length;
-    var parts = [];
-    parts.push("链接巡检：共检测 " + linkable + " 个可跳转入口，全部通过");
-    parts.push("<b>" + ENTRIES.length + "</b> 条入口均已逐条打开核验、可正常观看");
-    parts.push("展馆开放情况以馆方公告为准。");
-    $("#footNote").innerHTML = parts.join("　");
+    /* 页脚只保留对外的免责声明与数据更新日期：
+       源表名称、删除记录、链接巡检等属内部信息，不再对外展示
+       （原始数据仍在 data/entries.json 与 data/dropped.json 里）。 */
+    $("#footSource").innerHTML = "所有链接指向各馆官方或公开平台，本站不转载展馆内容。";
+    /* 日期取构建时写进数据的巡检日期（site.stats.checkedAt），不是访客打开页面的当天，
+       这样"数据更新"始终是这批链接真实核对过的日期 */
+    var upd = (SITE.stats && SITE.stats.checkedAt) || SITE.updated || "";
+    $("#footUpdated").innerHTML = "数据更新：" + esc(String(upd).replace(/-/g, "/"));
   }
 
   /* ------------------------------------------------------------ 启动 */

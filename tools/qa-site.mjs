@@ -18,6 +18,12 @@ const problems = [];
 const notes = [];
 const check = (cond, msg) => { if (!cond) problems.push(msg); else notes.push("OK  " + msg); };
 
+/* 两种 UA：微信内置浏览器（http 网页会被拦）与普通浏览器 */
+const WX_UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 " +
+  "(KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1 MicroMessenger/8.0.49";
+const PC_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+  "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+
 /* ---------- 1. 静态资源完整性 ---------- */
 const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
 const refs = [...html.matchAll(/(?:src|href)="([^"#][^"]*)"/g)].map((m) => m[1])
@@ -27,6 +33,35 @@ for (const r of refs) {
 }
 for (const r of ["assets/styles.css", "assets/app.js", "assets/qr.js", "data/entries.js", "data/entries.json"]) {
   check(fs.existsSync(path.join(ROOT, r)), `关键文件存在：${r}`);
+}
+
+/* http 入口跳转页（go.html）：源表检查清单第 4 条要求的"自有 https 域跳转页" */
+check(fs.existsSync(path.join(ROOT, "go.html")), "http 入口跳转页存在：go.html");
+if (fs.existsSync(path.join(ROOT, "go.html"))) {
+  const goHtml = fs.readFileSync(path.join(ROOT, "go.html"), "utf8");
+  const goRefs = [...goHtml.matchAll(/(?:src|href)="([^"#][^"]*)"/g)].map((m) => m[1])
+    .filter((u) => !/^(https?:|data:|mailto:)/.test(u));
+  for (const r of goRefs) {
+    check(fs.existsSync(path.join(ROOT, r)), `go.html 引用的资源存在：${r}`);
+  }
+  check(/assets\/util\.js/.test(goHtml) && fs.existsSync(path.join(ROOT, "assets", "util.js")),
+    "跳转页与导航页共用同一份工具脚本 assets/util.js（UTM 埋点口径一致）");
+  check(/assets\/go\.js/.test(goHtml), "跳转页逻辑独立在 assets/go.js");
+}
+
+/* GitHub Pages 部署清单：只发布 tar 里列出的文件，根目录新增页面必须同步加进去，
+   否则线上会 404（go.html 就是这么被发现的） */
+const workflow = fs.readFileSync(path.join(ROOT, ".github", "workflows", "pages.yml"), "utf8");
+const tarArgs = (workflow.split('artifact.tar"')[1] || "")
+  .slice(0, 300).replace(/\\\s*\n\s*/g, " ").split("\n")[0];
+check(tarArgs.length > 0, "能从 Pages 工作流里读到发布文件清单");
+const rootHtmls = fs.readdirSync(ROOT).filter((f) => f.toLowerCase().endsWith(".html"));
+for (const f of rootHtmls) {
+  const re = new RegExp("(^|\\s)" + f.replace(/\./g, "\\.") + "(\\s|$)");
+  check(re.test(tarArgs), `Pages 发布清单包含根目录页面：${f}`);
+}
+for (const d of ["assets", "data", "images"]) {
+  check(new RegExp("(^|\\s)" + d + "(\\s|$)").test(tarArgs), `Pages 发布清单包含目录：${d}`);
 }
 
 /* ---------- 2. 数据完整性 ---------- */
@@ -50,6 +85,14 @@ check(leakedSeq.length === 0, `被删除的序号未出现在数据中（泄漏 
 const ids = new Set(allEntries.map((e) => e.id));
 check(ids.size === allEntries.length, "入口 id 无重复");
 check(entries.filter((e) => e.linkable).length + entries.filter((e) => !e.linkable).length === entries.length, "可跳转/引导卡分类完整");
+
+/* http 入口：能升 https 的已升级，剩下的必须带"微信内怎么打开"的说明（wxnote） */
+const httpEntries = entries.filter((e) => e.risk === "http");
+check(httpEntries.every((e) => e.wxnote), `每条 http 入口都带微信内路径说明（${httpEntries.length} 条）`);
+check(entries.filter((e) => e.risk !== "http").every((e) => !e.wxnote),
+  "非 http 入口不带 wxnote（升级 https 后不留残留说明）");
+check(httpEntries.every((e) => e.linkable && /^http:\/\//i.test(e.url)),
+  `http 入口均为可跳转的 http 链接（${httpEntries.map((e) => e.id).join(",")}）`);
 
 // 每条 linkable 的入口都应有可解析的链接
 for (const e of entries) {
@@ -180,6 +223,9 @@ if (CHROME) {
       pendingText: /待复核|需复核|建议打开前复核|可能已失效/.test(document.body.innerText),
       cardNotes: Array.from(document.querySelectorAll(".card .note span"))
         .map((s) => s.textContent.trim()).join(" / "),
+      /* 带「http」角标的卡片 id（角标只能出现在 risk=http 的入口上） */
+      httpBadgeIds: Array.from(document.querySelectorAll(".card"))
+        .filter((c) => c.querySelector(".bdg-http")).map((c) => c.dataset.id),
       navLinks: document.querySelectorAll("#topnav a").length,
       timelineCards: ids.size,
       venueCards: venueIds.size,
@@ -213,6 +259,8 @@ if (CHROME) {
         return { brand: l(".brand"), hero: l(".hero .eyebrow"), filter: l(".filterbar .fctl-toggle"), result: l(".resultbar") };
       })(),
       footSource: (document.querySelector("#footSource")?.innerText || "").replace(/\s+/g, " "),
+      footUpdated: (document.querySelector("#footUpdated")?.innerText || "").replace(/\s+/g, " "),
+      footText: (document.querySelector("footer")?.innerText || "").replace(/\s+/g, " "),
       // 弱网优化：模糊占位是否内联生效
       inlinePlaceholders: Array.from(document.querySelectorAll(".thumb"))
         .filter((t) => (t.style.backgroundImage || "").includes("data:image")).length,
@@ -435,6 +483,76 @@ if (CHROME) {
     check(viaHttp.cards === entries.length, `http:// 下渲染全部卡片（${viaHttp.cards}）`);
     check(viaHttp.broken === 0, `http:// 下无破图（${viaHttp.broken}）`);
     await page2.close();
+
+    /* ---------- 4c. http 入口跳转页：微信内点卡片不再静默失败 ---------- */
+    const gate = httpEntries[0];
+    /* 只放行本地请求；外部目标挂起（不响应、也不放行），模拟微信把 http 请求拦在半路：
+       这样既能量到"有没有尝试跳向 http 目标"，又不会真的跳走，页面保持原样可继续断言。 */
+    function watchExternal(pg) {
+      const hit = [];
+      return pg.setRequestInterception(true).then(() => {
+        pg.on("request", (r) => {
+          const u = r.url();
+          if (u.startsWith("data:") || /^https?:\/\/(127\.0\.0\.1|localhost)(:|\/)/.test(u)) r.continue();
+          else hit.push(u);
+        });
+        return hit;
+      });
+    }
+
+    const page3 = await browser.newPage();
+    const errs3 = [];
+    page3.on("pageerror", (e) => errs3.push(e.message));
+    await page3.setUserAgent(WX_UA);
+    const hitWx = await watchExternal(page3);
+    await page3.goto("http://127.0.0.1:8791/index.html", { waitUntil: "load", timeout: 30000 });
+    await new Promise((r) => setTimeout(r, 2200));
+    const cardVisible = await page3.$(`.card[data-id="${gate.id}"] .btn-go`);
+    check(!!cardVisible, `自检用 http 入口卡片存在（${gate.id}）`);
+    if (cardVisible) {
+      await cardVisible.click();
+      await new Promise((r) => setTimeout(r, 1800));
+    }
+    const wxGate = await page3.evaluate(() => ({
+      url: location.href,
+      name: (document.querySelector("#goName")?.textContent || ""),
+      copyBtn: !!document.querySelector("#goCopy"),
+      steps: document.querySelectorAll("#goHttpBlock .steps li").length,
+      alert: (document.querySelector("#goAlert")?.innerText || "").slice(0, 40),
+      target: (document.querySelector("#goUrl")?.textContent || ""),
+      copyPayload: document.querySelector("#goCopy")?.getAttribute("data-copy") || "",
+    }));
+    check(/go\.html\?e=/.test(wxGate.url), `微信内点 http 卡片进入同源跳转页（${wxGate.url.split("/").pop()}）`);
+    check(wxGate.name === gate.name, `跳转页回显入口名称（「${wxGate.name}」）`);
+    check(wxGate.copyBtn && wxGate.steps === 3, `跳转页给出复制链接 + ${wxGate.steps} 步操作路径`);
+    check(wxGate.target === gate.url, `跳转页方框里显示入口原始地址（${wxGate.target}）`);
+    check(wxGate.copyPayload.indexOf(gate.host) > -1 &&
+      wxGate.copyPayload.indexOf("utm_content=" + gate.id + "_") > -1,
+      `「复制链接」复制的是带 UTM 埋点的完整地址（${wxGate.copyPayload.slice(0, 62)}…）`);
+    check(hitWx.length === 0, `微信内打开跳转页不自动跳向 http 目标（尝试 ${hitWx.length} 次）`);
+    /* 点「直接打开」被拦下后必须明确告知，而不是点了没反应 */
+    const afterTry = await page3.evaluate(async () => {
+      document.querySelector("#goOpen").click();
+      await new Promise((r) => setTimeout(r, 2400));
+      return { toast: (document.querySelector("#toast")?.innerText || ""), url: location.href };
+    });
+    check(/拦/.test(afterTry.toast), `微信内「直接打开」被拦后明确提示（「${afterTry.toast.slice(0, 24)}」）`);
+    check(/go\.html/.test(afterTry.url), "被拦后仍停留在跳转页（不会白屏 / 跳走）");
+    check(errs3.length === 0, `微信内跳转页无 JS 报错（${errs3.length ? errs3[0] : "0"}）`);
+    await page3.close();
+
+    /* 非微信环境：能直接开 http，自动放行，少一次点击 */
+    const page4 = await browser.newPage();
+    const errs4 = [];
+    page4.on("pageerror", (e) => errs4.push(e.message));
+    await page4.setUserAgent(PC_UA);
+    const hitPc = await watchExternal(page4);
+    await page4.goto(`http://127.0.0.1:8791/go.html?e=${gate.id}`, { waitUntil: "load", timeout: 30000 });
+    await new Promise((r) => setTimeout(r, 2200));
+    check(hitPc.some((u) => u.includes(gate.host)),
+      `桌面浏览器打开跳转页会自动前往目标（${hitPc[0] || "未尝试"}）`);
+    check(errs4.length === 0, `桌面跳转页无 JS 报错（${errs4.length ? errs4[0] : "0"}）`);
+    await page4.close();
   } finally {
     srv.kill();
     await new Promise((r) => setTimeout(r, 400));
@@ -494,14 +612,26 @@ if (CHROME) {
     `首屏描述中的场馆数为 ${venueCount}（实际「${render.heroVenues}」）`);
   check(!/已隐藏|未能自动核验|可能已失效/.test(render.resultText + render.footNote),
     `结果栏与页脚不再出现"隐藏/失效"字样（${render.resultText.slice(0, 50)}）`);
-  check(render.footSource.includes(`源表共 ${entries.length + 6} 条`) && render.footSource.includes("已从本站删除"),
-    `页脚如实说明源表 46 条中有 6 条已删除（${render.footSource.slice(0, 60)}）`);
+  /* 页脚只留对外信息：源表名称、删除记录、链接巡检等内部说明都不再出现 */
+  check(!/源表|dropped\.json|巡检|数据版本|第三方收录|已删除|已从本站删除/.test(render.footText),
+    `页脚不再出现源表 / 删除留档 / 链接巡检等内部信息（「${render.footText.slice(0, 60)}」）`);
+  check(/所有链接指向各馆官方或公开平台/.test(render.footSource) && /数据更新：\d{4}\/\d{2}\/\d{2}/.test(render.footUpdated),
+    `页脚保留免责声明与数据更新日期（${render.footSource} / ${render.footUpdated}）`);
+  check(render.footUpdated.includes(data.site.stats.checkedAt.replace(/-/g, "/")),
+    `「数据更新」取构建时记录的核对日期，不随访客当天变化（${render.footUpdated}）`);
+  check(/Wi-Fi/.test(render.footText), "页脚保留 Wi-Fi 访问提示");
   check(interaction.searchCards > 0 && interaction.searchCards < render.timelineCards, `搜索「遵义」生效（${interaction.searchCards} 张）`);
   /* 状态筛选与"待复核"标签已全部下线 */
   check(!render.stateRow && render.stateChips === 0, "筛选栏已去掉「状态」维度");
   check(render.warnBadges === 0 && !render.pendingText,
     `页面不再出现「待复核 / 需复核 / 建议复核」字样（角标 ${render.warnBadges}）`);
   check(!/需复核/.test(render.cardNotes), `卡片适配说明不再出现「需复核」（${render.cardNotes.slice(0, 40)}）`);
+  /* http 协议入口：能升 https 的已升级，剩下的必须仍走二次确认兜底 */
+  const httpIds = new Set(entries.filter((e) => e.risk === "http").map((e) => e.id));
+  const badgeIds = [...new Set(render.httpBadgeIds)];
+  check(badgeIds.length > 0 && badgeIds.every((id) => httpIds.has(id)),
+    `「http」角标只出现在 http 协议入口上（角标 ${badgeIds.length} 条 / 数据 ${httpIds.size} 条）`);
+  check(badgeIds.length === httpIds.size, "所有 http 入口都带「http」角标，升级后不留漏网");
   check(interaction.allCards === entries.length, "清空搜索后恢复全部卡片");
   check(interaction.chipFound && interaction.typeFilterPressed === "true" && interaction.typeFilterNarrowed,
     `类型筛选生效（${interaction.typeFilterCards} 张，选中态 ${interaction.typeFilterPressed}）`);

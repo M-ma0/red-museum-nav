@@ -196,9 +196,32 @@ def clean_url(u):
         return m.group(1), m.group(2)
     return u, ""
 
+# ---------------- 4a. 已实测可用的 https 升级 ----------------
+# 源表里写的是 http，但同址 https 已实测"证书有效 + 页面可打开"，直接升级：
+# 微信内置浏览器会拦 http://，升级后这些卡片不再需要二次确认，点开即看。
+# 判定标准（2026-10-12 实测）：证书链有效（不忽略证书也能握手）、最终地址仍是 https、状态码 < 400。
+# 若某条日后 https 失效（证书过期等），把对应项从这里删掉即可回退成 http，
+# 页面会自动把它交回 http 兜底流程（跳转页 go.html + 复制链接）。
+HTTPS_UPGRADE = {
+    17: "https://www.zgyd1921.com/",                                          # 中共一大纪念馆 官网
+    21: "https://www.4dmodel.com/SuperTwoCustom/jinggangshan/index.html#/",   # 井冈山 720°数字展厅
+    23: "https://www.rjjng.com.cn",                                           # 瑞金中央革命根据地纪念馆 官网
+    28: "https://www.txssw.com",                                              # 天下韶山网
+    44: "https://www.lzg.whgmbwg.com/pano/",                                  # 武汉革命博物馆 数字展馆
+    45: "https://www.1937china.com/views/home/default.html",                   # 抗战馆 VR 展厅
+}
+
+# ---------------- 4b. 仍是 http 的入口：卡片说明改成微信内可用路径 ----------------
+# 微信内置浏览器会拦 http（iOS 直接白屏），源表末列的"可直接打开"在微信里并不成立。
+# 这类入口点击后统一落到同源 https 跳转页 go.html（复制链接到浏览器打开 + 换设备扫码），
+# 卡片上的适配说明也换成微信内的实际路径，避免误导。
+WX_HTTP_NOTE = "微信内需经跳转页复制链接、用手机浏览器打开"
+
 entries = []
 for x in raw:
     url, note = clean_url(x["urlRaw"])
+    if x["seq"] in HTTPS_UPGRADE:
+        url = HTTPS_UPGRADE[x["seq"]]
     linkable = bool(REAL_URL.match(url))
     host = urllib.parse.urlparse(url).hostname if linkable else ""
     https = url.lower().startswith("https://") if linkable else False
@@ -224,6 +247,7 @@ for x in raw:
         "urlNote": note,
         "host": host or "",
         "mobile": x["mobile"],
+        "wxnote": WX_HTTP_NOTE if risk == "http" else "",
         "verified": x["verify"] == "官方确认",
         "verify": x["verify"],
         "linkable": linkable,

@@ -1,6 +1,6 @@
 name: Deploy static site to GitHub Pages
 
-# 站点是纯静态的，只需要把 index.html / assets / data / images 原样发布即可。
+# 站点是纯静态的，只需要把 index.html / go.html / assets / data / images 原样发布即可。
 # 构建工具（tools/、node_modules/、_build/）不参与部署。
 
 on:
@@ -38,7 +38,7 @@ jobs:
           tar \
             --dereference --hard-dereference \
             -cvf "$RUNNER_TEMP/artifact.tar" \
-            index.html assets data images README.md
+            index.html go.html assets data images README.md
 
       - name: Upload site artifact
         uses: actions/upload-artifact@v4
