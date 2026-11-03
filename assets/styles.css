@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    红色博物馆 · 云上观展导航  样式表
    设计基调：庄重红博风 —— 米白纸面 + 正红主色 + 烫金点缀 + 细腻分隔线
    ========================================================================== */
@@ -498,6 +498,15 @@ footer code {
   padding: 1px 5px; border-radius: 4px; font-size: 12px;
 }
 .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+
+/* 备案号（备案通过后由 app.js 填入） */
+.foot-icp {
+  margin: 18px 0 0; padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, .12);
+  font-size: 12px; color: rgba(255, 255, 255, .55); text-align: center;
+}
+.foot-icp a { color: inherit; text-decoration: none; border-bottom: 1px dotted rgba(255, 255, 255, .35); }
+.foot-icp a:hover { color: rgba(255, 255, 255, .85); }
 .dot.ok { background: var(--green); }
 .dot.http { background: var(--blue); }
 .dot.guide { background: var(--red); }

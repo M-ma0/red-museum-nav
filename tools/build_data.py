@@ -1,5 +1,5 @@
-# -*- coding: utf-8 -*-
-"""构建红色博物馆导航页数据：读取源表格 -> 规范化 entries.json + manifest.json"""
+﻿# -*- coding: utf-8 -*-
+"""构建「我的观展笔记」站点数据：读取源表格 -> 规范化 entries.json + manifest.json"""
 import io
 import json
 import os
@@ -260,11 +260,13 @@ for x in raw:
 entries.sort(key=lambda e: e["seq"])
 
 # ---------------- 5. 站点配置 ----------------
+# 站点对外名称：为避免个人备案被驳回，特意避开「导航」「博物馆」等行业词与地点名
 site = {
-    "title": "红色博物馆 · 云上观展导航",
+    "title": "我的观展笔记",
     "subtitle": "%d 家场馆 · %d 个线上入口 · 一处直达" % (
         len({e["venue"] for e in entries}), len(entries)),
-    "source": "《红色博物馆线上入口与公众号菜单配置表》",
+    "source": "个人整理的线上展馆入口清单",
+    "icp": "",   # 备案通过后填入备案号，页面页脚会自动展示
     "updated": "2026-09-13",
     "groupOrder": group_order,
     "typeOrder": TYPE_ORDER,

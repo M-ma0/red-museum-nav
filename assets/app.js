@@ -1,5 +1,5 @@
-/* ==========================================================================
-   红色博物馆 · 云上观展导航  交互脚本
+﻿/* ==========================================================================
+   我的观展笔记  交互脚本
    依赖：data/entries.js（由 tools/build_data.py 生成，含 window.__NAV_DATA__）
    也支持通过 fetch('data/entries.json') 覆盖（用于本地起服务时的增量更新）
    ========================================================================== */
@@ -710,7 +710,7 @@
   function renderHero() {
     var venues = Object.keys(ENTRIES.reduce(function (m, e) { m[e.venue] = 1; return m; }, {})).length;
     // 标题里的条数跟随实际展示的条目，删除条目后不会对不上
-    $("#heroTitle").textContent = ENTRIES.length + " 个红色博物馆线上入口";
+    $("#heroTitle").textContent = ENTRIES.length + " 个线上展馆入口";
     var hv = $("#heroVenues");
     if (hv) hv.textContent = venues;
   }
@@ -741,6 +741,18 @@
        这样"数据更新"始终是这批链接真实核对过的日期 */
     var upd = (SITE.stats && SITE.stats.checkedAt) || SITE.updated || "";
     $("#footUpdated").innerHTML = "数据更新：" + esc(String(upd).replace(/-/g, "/"));
+
+    /* 备案号：备案通过后把号码填到 data 的 site.icp，页面自动展示并链接到工信部备案系统 */
+    var icp = (SITE && SITE.icp) || "";
+    var box = $("#footIcp");
+    if (box) {
+      if (icp) {
+        box.hidden = false;
+        box.innerHTML = '<a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">' + esc(icp) + "</a>";
+      } else {
+        box.hidden = true;
+      }
+    }
   }
 
   /* ------------------------------------------------------------ 启动 */

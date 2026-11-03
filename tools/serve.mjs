@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 极简静态服务器（仅用于本地预览，零依赖）
  * 用法: node tools/serve.mjs [端口]
  */
@@ -48,6 +48,6 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, "127.0.0.1", () => {
-  console.log(`红色博物馆导航页本地预览: http://127.0.0.1:${PORT}/index.html`);
+  console.log(`观展笔记本地预览: http://127.0.0.1:${PORT}/index.html`);
   console.log("按 Ctrl+C 结束服务。");
 });

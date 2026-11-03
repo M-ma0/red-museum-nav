@@ -1,9 +1,9 @@
-{
+﻿{
   "name": "red-museum-nav",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "红色博物馆 · 云上观展导航页 —— 静态站点与配套构建、截图采集、自检工具",
+  "description": "我的观展笔记 —— 静态站点与配套构建、截图采集、自检工具",
   "scripts": {
     "serve": "node tools/serve.mjs 8765",
     "qa": "node tools/qa-site.mjs",

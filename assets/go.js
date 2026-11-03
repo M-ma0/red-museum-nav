@@ -1,4 +1,4 @@
-/* ==========================================================================
+﻿/* ==========================================================================
    http 入口跳转页（go.html）
    依据源表「配置检查清单」第 4 条：
      http 链接需经自有 https 域跳转，或在聚合页加"复制链接到浏览器打开"兜底按钮。
@@ -62,7 +62,7 @@
       if (miss) miss.hidden = false;
       return;
     }
-    document.title = (entry ? entry.venue + " · " + entry.name : "正在前往") + " · 红色博物馆云上观展导航";
+    document.title = (entry ? entry.venue + " · " + entry.name : "正在前往") + " · 我的观展笔记";
     if (entry) {
       $("#goVenue").textContent = entry.venue + (entry.region ? " · " + entry.region : "");
       $("#goName").textContent = entry.name;

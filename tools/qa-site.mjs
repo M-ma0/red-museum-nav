@@ -589,7 +589,7 @@ if (CHROME) {
     .filter((id) => render.renderedIds.includes(id));
   check(leaked.length === 0, `已删除的入口未出现在页面（泄漏 ${leaked.length} 个${leaked.length ? "：" + leaked.join(",") : ""}）`);
   check(render.deadBadges === 0, `页面不再出现"失效"角标（${render.deadBadges} 个）`);
-  check(render.heroTitle === `${entries.length} 个红色博物馆线上入口`,
+  check(render.heroTitle === `${entries.length} 个线上展馆入口`,
     `首屏标题与展示条数一致（「${render.heroTitle}」）`);
   /* 版面：统计卡删除、搜索框在顶栏右上、红幕与暖纸底 */
   const rgb = (s) => (s.match(/\d+/g) || []).slice(0, 3).map(Number);
@@ -609,11 +609,11 @@ if (CHROME) {
     `首屏 / 筛选栏 / 结果栏与顶栏左对齐（品牌 ${al.brand}、首屏 ${al.hero}、筛选栏 ${al.filter}、结果 ${al.result}）`);
   // 首屏文案里的场馆数必须与统计一致，避免出现"14 家"这类过期文案
   const venueCount = String(Object.keys(entries.reduce((m, e) => (m[e.venue] = 1, m), {})).length);
-  check(render.heroVenues === venueCount && render.heroLead.includes(`汇集全国 ${venueCount} 家`),
+  check(render.heroVenues === venueCount && render.heroLead.includes(`${venueCount} 家`),
     `首屏描述中的场馆数为 ${venueCount}（实际「${render.heroVenues}」）`);
   /* 分享卡片 / 搜索引擎抓的 meta description 也写死了条数，必须与数据同步 */
-  check(render.metaDesc.includes(`汇聚 ${venueCount} 家`) &&
-    render.metaDesc.includes(`的 ${entries.length} 个线上展馆入口`),
+  check(render.metaDesc.includes(`${venueCount} 家`) &&
+    render.metaDesc.includes(`${entries.length} 个线上展馆入口`),
     `meta description 的场馆数与入口数与数据一致（${venueCount} 家 / ${entries.length} 条）：「${render.metaDesc.slice(0, 46)}…」`);
   check(!/已隐藏|未能自动核验|可能已失效/.test(render.resultText + render.footNote),
     `结果栏与页脚不再出现"隐藏/失效"字样（${render.resultText.slice(0, 50)}）`);
