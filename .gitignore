@@ -20,5 +20,9 @@ desktop.ini
 # ---- 部署包（由 deploy/打包.ps1 重新生成，不入库）----
 deploy/*.zip
 
+# ---- 构建产物：根目录 404.html 由 CI / 打包脚本从 deploy/site/ 取过来 ----
+/404.html
+/旧包备份-*.zip
+
 # ---- 编辑器/工具产物的记忆目录 ----
 .workbuddy/

@@ -37,8 +37,18 @@
   </div>
   <h1>这个页面找不到了</h1>
   <p>你访问的链接可能已经变更或输入有误。<br>返回首页，即可看到全部 40 个线上展馆入口。</p>
-  <a class="btn" href="/">返回首页</a>
+  <a class="btn" href="/" id="homeLink">返回首页</a>
   <div class="tip">我的观展笔记</div>
 </div>
+<script>
+  /* 站点部署在子路径（GitHub Pages 的 /red-museum-nav/）时，href="/" 会跑到域名根而不是站点首页，
+     这里按首段路径判断站点根；部署在自有域名根目录时保持 "/" 不变。
+     若哪天改了仓库名，只需同步下面这一个字符串。 */
+  (function () {
+    var SEG = "/red-museum-nav/";
+    var a = document.getElementById("homeLink");
+    if (a && location.pathname.indexOf(SEG) === 0) a.href = SEG;
+  })();
+</script>
 </body>
 </html>

@@ -33,12 +33,16 @@ jobs:
 
       # upload-pages-artifact 只接受单个 path，所以先按需打包成 tar，
       # 这样既能精确控制发布内容，也避免把 tools/ 一并发布。
+      # 404.html 的源文件在 deploy/site/ 下（服务器部署也从那里取），这里先取到根再打包，
+      # 否则 GitHub Pages 找不到自定义 404 页，会显示默认的「404 There isn't a GitHub Pages site here」。
+      # README.md 不发布：它讲的是本地构建与数据维护，没必要出现在站点上。
       - name: Archive site files
         run: |
+          cp deploy/site/404.html ./404.html
           tar \
             --dereference --hard-dereference \
             -cvf "$RUNNER_TEMP/artifact.tar" \
-            index.html go.html assets data images README.md
+            index.html go.html 404.html assets data images
 
       - name: Upload site artifact
         uses: actions/upload-artifact@v4

@@ -3,16 +3,16 @@
 # 红色博物馆云上观展导航 —— 服务器一键部署
 #
 # 用法：
-#   1) 本地把两个文件传到服务器：
-#        scp deploy\red-museum-nav-site.zip root@服务器IP:/root/
-#        scp deploy\server-setup.sh          root@服务器IP:/root/
-#   2) 登录服务器，修掉可能存在的 Windows 换行，然后执行：
-#        ssh root@服务器IP
-#        sed -i 's/\r$//' /root/server-setup.sh
-#        bash /root/server-setup.sh 你的域名 你的邮箱
+#   1) 本地把两个文件传到服务器（腾讯云 Ubuntu 镜像默认用户是 ubuntu，root 不是登录用户）：
+#        scp deploy/red-museum-nav-site.zip ubuntu@服务器IP:~/
+#        scp deploy/server-setup.sh          ubuntu@服务器IP:~/
+#   2) 登录服务器，修掉可能存在的 Windows 换行，然后用 sudo 执行：
+#        ssh ubuntu@服务器IP
+#        sed -i 's/\r$//' ~/server-setup.sh
+#        sudo bash ~/server-setup.sh 你的域名 你的邮箱
 #
 # 示例：
-#   bash /root/server-setup.sh hongsemuseum.cn admin@example.com
+#   sudo bash ~/server-setup.sh guanzhanji.cn admin@example.com
 #
 # 脚本会依次完成：
 #   安装 Nginx → 解压站点 → 写配置 → 启动 → 本地自检 → 申请免费 HTTPS 证书
@@ -22,7 +22,18 @@ set -Eeuo pipefail
 
 DOMAIN="${1:-}"
 EMAIL="${2:-}"
-ZIP="${3:-/root/red-museum-nav-site.zip}"
+# 部署包默认取「脚本所在目录」（scp 到 ~/ 后脚本与 zip 同目录），其次用户主目录；
+# 也可用第 3 个参数显式指定。这样无论用 root 还是 ubuntu 用户都能直接跑。
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+if [[ -n "${3:-}" ]]; then
+  ZIP="$3"
+elif [[ -f "$SCRIPT_DIR/red-museum-nav-site.zip" ]]; then
+  ZIP="$SCRIPT_DIR/red-museum-nav-site.zip"
+elif [[ -f "${HOME:-/root}/red-museum-nav-site.zip" ]]; then
+  ZIP="${HOME:-/root}/red-museum-nav-site.zip"
+else
+  ZIP="$SCRIPT_DIR/red-museum-nav-site.zip"
+fi
 SITE_ROOT="/var/www/red-museum-nav"
 CONF="/etc/nginx/conf.d/red-museum-nav.conf"
 
@@ -39,7 +50,7 @@ trap on_error ERR
 
 # ---------------- 前置检查 ----------------
 step "检查运行环境"
-[[ $EUID -eq 0 ]] || { red "请用 root 运行：sudo bash $0 域名 邮箱"; exit 1; }
+[[ $EUID -eq 0 ]] || { red "请用 root 运行。腾讯云 Ubuntu 镜像请这样执行：sudo bash $0 你的域名 你的邮箱"; exit 1; }
 [[ -n "$DOMAIN" ]] || { red "缺少域名参数。用法：bash $0 你的域名 你的邮箱"; exit 1; }
 [[ -n "$EMAIL"  ]] || { red "缺少邮箱参数。用法：bash $0 你的域名 你的邮箱"; exit 1; }
 [[ -f "$ZIP"    ]] || { red "找不到部署包：$ZIP（请先 scp 上传）"; exit 1; }
@@ -187,6 +198,6 @@ cat <<SUMMARY
  4) 公众号菜单 → 跳转网页 → https://${DOMAIN}/
 
  更新站点：重新上传 zip 后执行
-      cd ${SITE_ROOT} && unzip -o /root/red-museum-nav-site.zip && chown -R www-data:www-data ${SITE_ROOT}
+      cd ${SITE_ROOT} && unzip -o ${ZIP} && chown -R www-data:www-data ${SITE_ROOT}
 ============================================================
 SUMMARY
